@@ -1,0 +1,6202 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OpenAsy HR",
+    "version": "0.1.0",
+    "description": "Employee records, departments and positions, the org chart, documents with expiry, leave with balances and approvals as hr.yaml sets them, joining and leaving checklists, the history of every change and the access log. Everyone signed in reads the directory; the other parts of a record go to the person, their managers and the roles the file names; admins read everything.",
+    "license": {
+      "name": "AGPL-3.0-only",
+      "identifier": "AGPL-3.0-only"
+    }
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "security": [
+    {
+      "session": []
+    },
+    {
+      "apiToken": []
+    },
+    {
+      "adminToken": []
+    }
+  ],
+  "paths": {
+    "/api/v1/version": {
+      "get": {
+        "operationId": "version",
+        "tags": [
+          "Product"
+        ],
+        "summary": "Product and version",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/products": {
+      "get": {
+        "operationId": "products",
+        "tags": [
+          "Product"
+        ],
+        "summary": "The install's other OpenAsy products",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Products"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "operationId": "me",
+        "tags": [
+          "Product"
+        ],
+        "summary": "Who the caller is in HR, and what waits for them",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      }
+    },
+    "/api/v1/settings": {
+      "get": {
+        "operationId": "settings",
+        "tags": [
+          "Product"
+        ],
+        "summary": "The settings file as applied; nothing changes it but the file",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Settings"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      }
+    },
+    "/api/v1/integrations": {
+      "get": {
+        "operationId": "integrations",
+        "tags": [
+          "Product"
+        ],
+        "summary": "Identity and mail: what waits, and what failed",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Integrations"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      }
+    },
+    "/api/v1/holidays": {
+      "get": {
+        "operationId": "holidays",
+        "tags": [
+          "Leave"
+        ],
+        "summary": "The public holidays of a year",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "description": "Such as 2026; this year by default.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "holidays"
+                  ],
+                  "properties": {
+                    "holidays": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Holiday"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      }
+    },
+    "/api/v1/departments": {
+      "get": {
+        "operationId": "listDepartments",
+        "tags": [
+          "Organisation"
+        ],
+        "summary": "Departments",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "departments"
+                  ],
+                  "properties": {
+                    "departments": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Department"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      },
+      "post": {
+        "operationId": "createDepartment",
+        "tags": [
+          "Organisation"
+        ],
+        "summary": "Add a department",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "parent": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "head": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "identityGroup": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "description": "The Identity group its people are put in; its name by default."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Department"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/departments/{id}": {
+      "patch": {
+        "operationId": "updateDepartment",
+        "tags": [
+          "Organisation"
+        ],
+        "summary": "Change a department",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The department's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "parent": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "head": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "identityGroup": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Department"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      },
+      "delete": {
+        "operationId": "removeDepartment",
+        "tags": [
+          "Organisation"
+        ],
+        "summary": "Delete a department nobody is in",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The department's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/positions": {
+      "get": {
+        "operationId": "listPositions",
+        "tags": [
+          "Organisation"
+        ],
+        "summary": "Positions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "positions"
+                  ],
+                  "properties": {
+                    "positions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Position"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      },
+      "post": {
+        "operationId": "createPosition",
+        "tags": [
+          "Organisation"
+        ],
+        "summary": "Add a position",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "department": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Position"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/positions/{id}": {
+      "patch": {
+        "operationId": "updatePosition",
+        "tags": [
+          "Organisation"
+        ],
+        "summary": "Change a position",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The position's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "department": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Position"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      },
+      "delete": {
+        "operationId": "removePosition",
+        "tags": [
+          "Organisation"
+        ],
+        "summary": "Delete a position nobody holds",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The position's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/org-chart": {
+      "get": {
+        "operationId": "orgChart",
+        "tags": [
+          "Organisation"
+        ],
+        "summary": "Everyone working, by manager",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "roots",
+                    "people"
+                  ],
+                  "properties": {
+                    "roots": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrgNode"
+                      }
+                    },
+                    "people": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      }
+    },
+    "/api/v1/upcoming": {
+      "get": {
+        "operationId": "upcoming",
+        "tags": [
+          "Organisation"
+        ],
+        "summary": "Starts, ends, probation and contract ends, anniversaries and expiring documents",
+        "description": "Only what the caller reads: starts for everyone, the rest by the work and documents parts.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "description": "How far ahead, 1 to 365; 30 by default.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "events"
+                  ],
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Upcoming"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
+      }
+    },
+    "/api/v1/employees": {
+      "get": {
+        "operationId": "listEmployees",
+        "tags": [
+          "People"
+        ],
+        "summary": "Employees, with the parts the caller reads",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "current (the default: active and upcoming), active, upcoming, left or all; left and all for the viewer role and above.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "department",
+            "in": "query",
+            "required": false,
+            "description": "A department's id.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "manager",
+            "in": "query",
+            "required": false,
+            "description": "A manager's id: their direct reports.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Part of a name or work email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "employees"
+                  ],
+                  "properties": {
+                    "employees": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Employee"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      },
+      "post": {
+        "operationId": "createEmployee",
+        "tags": [
+          "People"
+        ],
+        "summary": "Add an employee",
+        "description": "Starts the joining checklist; Identity makes their account on the start day.\n\nNeeds the editor role.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Employee"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor"
+      }
+    },
+    "/api/v1/employees/{id}": {
+      "get": {
+        "operationId": "getEmployee",
+        "tags": [
+          "People"
+        ],
+        "summary": "An employee's record, with the parts the caller reads",
+        "description": "The look is written to the record's access log.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The employee's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Employee"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
+      },
+      "patch": {
+        "operationId": "updateEmployee",
+        "tags": [
+          "People"
+        ],
+        "summary": "Change a record",
+        "description": "Editors change everything; people change their own contact details. Every change is in the history.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The employee's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Employee"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
+      },
+      "delete": {
+        "operationId": "removeEmployee",
+        "tags": [
+          "People"
+        ],
+        "summary": "Delete a record and everything about it",
+        "description": "Refused while their Identity account is on. Records are also deleted by themselves after retention.after_leaving.\n\nNeeds the admin role.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The employee's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "admin"
+      }
+    },
+    "/api/v1/employees/{id}/history": {
+      "get": {
+        "operationId": "employeeHistory",
+        "tags": [
+          "People"
+        ],
+        "summary": "Every change to the record, field by field",
+        "description": "Only the parts the caller reads.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The employee's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "history"
+                  ],
+                  "properties": {
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "at",
+                          "by",
+                          "part",
+                          "field",
+                          "from",
+                          "to"
+                        ],
+                        "properties": {
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "by": {
+                            "type": "string"
+                          },
+                          "part": {
+                            "type": "string"
+                          },
+                          "field": {
+                            "type": "string"
+                          },
+                          "from": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "to": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
+      }
+    },
+    "/api/v1/employees/{id}/access-log": {
+      "get": {
+        "operationId": "employeeAccessLog",
+        "tags": [
+          "People"
+        ],
+        "summary": "Who looked at the record (KVKK)",
+        "description": "For the person themselves and admins.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The employee's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "entries"
+                  ],
+                  "properties": {
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "at",
+                          "by",
+                          "as",
+                          "what",
+                          "parts"
+                        ],
+                        "properties": {
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "by": {
+                            "type": "string"
+                          },
+                          "as": {
+                            "type": "string"
+                          },
+                          "what": {
+                            "type": "string"
+                          },
+                          "parts": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
+      }
+    },
+    "/api/v1/employees/{id}/pay": {
+      "get": {
+        "operationId": "listPay",
+        "tags": [
+          "People"
+        ],
+        "summary": "Pay over time",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The employee's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "pay"
+                  ],
+                  "properties": {
+                    "pay": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Pay"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      },
+      "post": {
+        "operationId": "addPay",
+        "tags": [
+          "People"
+        ],
+        "summary": "Set pay from a day on",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The employee's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "from",
+                  "amount"
+                ],
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-12-01"
+                    ]
+                  },
+                  "amount": {
+                    "type": "number"
+                  },
+                  "currency": {
+                    "type": "string"
+                  },
+                  "period": {
+                    "type": "string",
+                    "enum": [
+                      "month",
+                      "hour",
+                      "year"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Pay"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/employees/{id}/documents": {
+      "get": {
+        "operationId": "listDocuments",
+        "tags": [
+          "Documents"
+        ],
+        "summary": "A person's documents",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The employee's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "documents"
+                  ],
+                  "properties": {
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Document"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      },
+      "post": {
+        "operationId": "addDocument",
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Add a document",
+        "description": "Editors add to any record, people to their own. The file is encrypted with the install's key.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The employee's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "name",
+                  "contentType",
+                  "content"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "description": "A kind from the file's documents."
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "contentType": {
+                    "type": "string",
+                    "enum": [
+                      "application/pdf",
+                      "image/png",
+                      "image/jpeg"
+                    ]
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "The file in base64, up to 10 MiB. It is checked to be what contentType says."
+                  },
+                  "expiresOn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date",
+                        "examples": [
+                          "2026-12-01"
+                        ],
+                        "description": "Needed for kinds that expire."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Document"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
+      }
+    },
+    "/api/v1/employees/{id}/balances": {
+      "get": {
+        "operationId": "balances",
+        "tags": [
+          "Leave"
+        ],
+        "summary": "Leave balances, by type",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The employee's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "balances"
+                  ],
+                  "properties": {
+                    "balances": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Balance"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      },
+      "post": {
+        "operationId": "adjustBalance",
+        "tags": [
+          "Leave"
+        ],
+        "summary": "Add or take away days, such as an opening balance",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The employee's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "days",
+                  "note"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "days": {
+                    "type": "number"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "day": {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-12-01"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Balance"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/employees/{id}/checklists": {
+      "get": {
+        "operationId": "employeeChecklists",
+        "tags": [
+          "Checklists"
+        ],
+        "summary": "Joining and leaving checklists, and whether Identity turned the account off",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The employee's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "checklists"
+                  ],
+                  "properties": {
+                    "checklists": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Checklist"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      }
+    },
+    "/api/v1/documents/{id}": {
+      "get": {
+        "operationId": "documentFile",
+        "tags": [
+          "Documents"
+        ],
+        "summary": "The document's file",
+        "description": "The look is written to the record's access log.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The document's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file.",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
+      },
+      "delete": {
+        "operationId": "removeDocument",
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Delete a document",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The document's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/expiring-documents": {
+      "get": {
+        "operationId": "expiringDocuments",
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Documents expired or expiring within their kind's warn_before",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "documents"
+                  ],
+                  "properties": {
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/Document"
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "employee"
+                            ],
+                            "properties": {
+                              "employee": {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      }
+    },
+    "/api/v1/tasks": {
+      "get": {
+        "operationId": "tasks",
+        "tags": [
+          "Checklists"
+        ],
+        "summary": "Open checklist tasks for the caller",
+        "parameters": [
+          {
+            "name": "all",
+            "in": "query",
+            "required": false,
+            "description": "true: every open task, for editors.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "tasks"
+                  ],
+                  "properties": {
+                    "tasks": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Task"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      }
+    },
+    "/api/v1/tasks/{id}/done": {
+      "post": {
+        "operationId": "taskDone",
+        "tags": [
+          "Checklists"
+        ],
+        "summary": "Mark a task done",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The task's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      }
+    },
+    "/api/v1/tasks/{id}/undo": {
+      "post": {
+        "operationId": "taskUndo",
+        "tags": [
+          "Checklists"
+        ],
+        "summary": "Mark a task not done",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The task's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      }
+    },
+    "/api/v1/leave": {
+      "get": {
+        "operationId": "listLeave",
+        "tags": [
+          "Leave"
+        ],
+        "summary": "Leave requests",
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "description": "mine (the default), approvals (waiting for the caller), team (the people they manage) or all (those whose leave they read).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "pending, approved, rejected or cancelled.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "employee",
+            "in": "query",
+            "required": false,
+            "description": "One person's.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "requests"
+                  ],
+                  "properties": {
+                    "requests": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LeaveRequest"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      },
+      "post": {
+        "operationId": "createLeave",
+        "tags": [
+          "Leave"
+        ],
+        "summary": "Ask for leave",
+        "description": "It goes through the steps of its type's approval rule; each approver is emailed in turn.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "startDate"
+                ],
+                "properties": {
+                  "employee": {
+                    "type": "string",
+                    "description": "Whose leave; leave it out for your own. Only editors record leave for others."
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-12-01"
+                    ]
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-12-01"
+                    ]
+                  },
+                  "startHalf": {
+                    "type": "boolean"
+                  },
+                  "endHalf": {
+                    "type": "boolean"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "document": {
+                    "type": "string",
+                    "description": "One of the person's documents, such as a health report."
+                  },
+                  "approved": {
+                    "type": "boolean",
+                    "description": "Editors only: recorded as approved, with no steps."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
+      }
+    },
+    "/api/v1/leave/quote": {
+      "post": {
+        "operationId": "quoteLeave",
+        "tags": [
+          "Leave"
+        ],
+        "summary": "What a request would take, without making it",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "startDate"
+                ],
+                "properties": {
+                  "employee": {
+                    "type": "string",
+                    "description": "Whose leave; leave it out for your own. Only editors record leave for others."
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-12-01"
+                    ]
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-12-01"
+                    ]
+                  },
+                  "startHalf": {
+                    "type": "boolean"
+                  },
+                  "endHalf": {
+                    "type": "boolean"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "document": {
+                    "type": "string",
+                    "description": "One of the person's documents, such as a health report."
+                  },
+                  "approved": {
+                    "type": "boolean",
+                    "description": "Editors only: recorded as approved, with no steps."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "days",
+                    "perDay",
+                    "balance"
+                  ],
+                  "properties": {
+                    "days": {
+                      "type": "number"
+                    },
+                    "perDay": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "date",
+                          "takes"
+                        ],
+                        "properties": {
+                          "date": {
+                            "type": "string",
+                            "format": "date",
+                            "examples": [
+                              "2026-12-01"
+                            ]
+                          },
+                          "takes": {
+                            "type": "number"
+                          },
+                          "why": {
+                            "type": "string",
+                            "enum": [
+                              "day-off",
+                              "holiday",
+                              "half-holiday"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "balance": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "available",
+                            "after"
+                          ],
+                          "properties": {
+                            "available": {
+                              "type": "number"
+                            },
+                            "after": {
+                              "type": "number"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      }
+    },
+    "/api/v1/leave/{id}": {
+      "get": {
+        "operationId": "getLeave",
+        "tags": [
+          "Leave"
+        ],
+        "summary": "A leave request",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The request's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      }
+    },
+    "/api/v1/leave/{id}/approve": {
+      "post": {
+        "operationId": "approveLeave",
+        "tags": [
+          "Leave"
+        ],
+        "summary": "Approve the step the request waits on",
+        "description": "The step's approver, or editors on their behalf; nobody approves their own leave.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The request's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
+      }
+    },
+    "/api/v1/leave/{id}/reject": {
+      "post": {
+        "operationId": "rejectLeave",
+        "tags": [
+          "Leave"
+        ],
+        "summary": "Reject the request",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The request's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user",
+        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+      }
+    },
+    "/api/v1/leave/{id}/cancel": {
+      "post": {
+        "operationId": "cancelLeave",
+        "tags": [
+          "Leave"
+        ],
+        "summary": "Cancel a request",
+        "description": "The person cancels before it starts; editors at any time. Its days go back to the balance.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The request's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
+      }
+    },
+    "/api/v1/absences": {
+      "get": {
+        "operationId": "absences",
+        "tags": [
+          "Contracts"
+        ],
+        "summary": "Who is away: the team calendar, Calendar's busy times and Time's leave",
+        "description": "Approved leave overlapping the days, and pending leave when asked. The type is shown to those who read the person's leave, and to everyone for types the file shows to colleagues; otherwise only that they are away.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "A day; today by default.",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "examples": [
+                "2026-12-01"
+              ]
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "A day, at most a year after from; 30 days after from by default.",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "examples": [
+                "2026-12-01"
+              ]
+            }
+          },
+          {
+            "name": "pending",
+            "in": "query",
+            "required": false,
+            "description": "true to include pending requests.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "department",
+            "in": "query",
+            "required": false,
+            "description": "A department's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "absences"
+                  ],
+                  "properties": {
+                    "absences": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Absence"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
+      }
+    },
+    "/api/v1/import": {
+      "post": {
+        "operationId": "importCsv",
+        "tags": [
+          "People"
+        ],
+        "summary": "Import employees from a CSV file",
+        "description": "Comma or semicolon separated, with a header line in English or Turkish. People are matched by work email or number and updated; departments and positions are made by name; managers are linked by work email; salary and an opening annual leave balance may be given. dryRun checks every row and changes nothing.\n\nNeeds the editor role.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "csv"
+                ],
+                "properties": {
+                  "csv": {
+                    "type": "string"
+                  },
+                  "dryRun": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "rows",
+                    "created",
+                    "updated",
+                    "skipped",
+                    "errors",
+                    "ignoredColumns",
+                    "dryRun"
+                  ],
+                  "properties": {
+                    "rows": {
+                      "type": "integer"
+                    },
+                    "created": {
+                      "type": "integer"
+                    },
+                    "updated": {
+                      "type": "integer"
+                    },
+                    "skipped": {
+                      "type": "integer"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "row",
+                          "message"
+                        ],
+                        "properties": {
+                          "row": {
+                            "type": "integer"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "ignoredColumns": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "dryRun": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor"
+      }
+    },
+    "/api/v1/payroll": {
+      "get": {
+        "operationId": "payroll",
+        "tags": [
+          "Contracts"
+        ],
+        "summary": "The month as Payroll reads it",
+        "description": "Everyone who worked a day of the month, with their dates, current pay and bank account, leave days by type and whether each is paid, and the annual balance. Parts the caller does not read are null; each person's look is logged.\n\nNeeds the viewer role.",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "description": "YYYY-MM; this month by default.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "month",
+                    "from",
+                    "to",
+                    "employees"
+                  ],
+                  "properties": {
+                    "month": {
+                      "type": "string"
+                    },
+                    "from": {
+                      "type": "string",
+                      "format": "date",
+                      "examples": [
+                        "2026-12-01"
+                      ]
+                    },
+                    "to": {
+                      "type": "string",
+                      "format": "date",
+                      "examples": [
+                        "2026-12-01"
+                      ]
+                    },
+                    "employees": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PayrollEmployee"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer"
+      }
+    },
+    "/healthz": {
+      "get": {
+        "operationId": "healthz",
+        "tags": [
+          "Product"
+        ],
+        "summary": "Alive",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "readyz",
+        "tags": [
+          "Product"
+        ],
+        "summary": "Ready",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not ready.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "metrics",
+        "tags": [
+          "Product"
+        ],
+        "summary": "Prometheus metrics",
+        "responses": {
+          "200": {
+            "description": "Metrics.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "openasy_session"
+      },
+      "apiToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "An API token made under Settings, API tokens."
+      },
+      "adminToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Tests only."
+      }
+    },
+    "responses": {
+      "Problem": {
+        "description": "A problem (RFC 9457).",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Problem": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "Status": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "Version": {
+        "type": "object",
+        "required": [
+          "product",
+          "version"
+        ],
+        "properties": {
+          "product": {
+            "type": "string",
+            "enum": [
+              "hr"
+            ]
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "Products": {
+        "type": "object",
+        "required": [
+          "products"
+        ],
+        "properties": {
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "url"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Me": {
+        "type": "object",
+        "required": [
+          "member",
+          "employee",
+          "manages",
+          "hr",
+          "waitingForMe",
+          "tasks"
+        ],
+        "properties": {
+          "member": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "role"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              }
+            }
+          },
+          "employee": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manages": {
+            "type": "integer"
+          },
+          "hr": {
+            "type": "boolean",
+            "description": "The viewer role or above: reads everyone's records as the file allows."
+          },
+          "waitingForMe": {
+            "type": "integer"
+          },
+          "tasks": {
+            "type": "integer"
+          }
+        }
+      },
+      "Settings": {
+        "type": "object",
+        "required": [
+          "timeZone",
+          "language",
+          "workWeek",
+          "leaveTypes",
+          "approvals",
+          "access",
+          "file",
+          "text"
+        ],
+        "properties": {
+          "timeZone": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "workWeek": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "leaveTypes": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "approvals": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "access": {
+            "type": "object"
+          },
+          "file": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "description": "The file as applied."
+      },
+      "Integrations": {
+        "type": "object",
+        "required": [
+          "identity",
+          "mail"
+        ],
+        "properties": {
+          "identity": {
+            "type": "object",
+            "required": [
+              "configured",
+              "tokenSet",
+              "url",
+              "waiting",
+              "failing"
+            ],
+            "properties": {
+              "configured": {
+                "type": "boolean"
+              },
+              "tokenSet": {
+                "type": "boolean"
+              },
+              "url": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "waiting": {
+                "type": "integer"
+              },
+              "failing": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "employee",
+                    "error",
+                    "nextTry"
+                  ],
+                  "properties": {
+                    "employee": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "nextTry": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "mail": {
+            "type": "object",
+            "required": [
+              "configured",
+              "waiting",
+              "lastError"
+            ],
+            "properties": {
+              "configured": {
+                "type": "boolean"
+              },
+              "waiting": {
+                "type": "integer"
+              },
+              "lastError": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "Holiday": {
+        "type": "object",
+        "required": [
+          "date",
+          "name",
+          "half"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-12-01"
+            ]
+          },
+          "name": {
+            "type": "object",
+            "required": [
+              "en",
+              "de",
+              "tr"
+            ],
+            "properties": {
+              "en": {
+                "type": "string"
+              },
+              "de": {
+                "type": "string"
+              },
+              "tr": {
+                "type": "string"
+              }
+            }
+          },
+          "half": {
+            "type": "boolean",
+            "description": "Only the afternoon is off: leave on it takes half a day."
+          }
+        }
+      },
+      "Department": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "parentId",
+          "head",
+          "identityGroup",
+          "people",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "head": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "identityGroup": {
+            "type": "string"
+          },
+          "people": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Position": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "departmentId",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "departmentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Employee": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "firstName",
+          "lastName",
+          "preferredName",
+          "workEmail",
+          "status",
+          "startDate",
+          "department",
+          "position",
+          "manager",
+          "location",
+          "reports",
+          "parts",
+          "can",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "preferredName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "workEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "active",
+              "left"
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-12-01"
+            ]
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "title"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manager": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reports": {
+            "type": "integer",
+            "description": "People who report to them directly."
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "work",
+                "personal",
+                "pay",
+                "documents",
+                "leave"
+              ]
+            },
+            "description": "The parts of this record the caller reads, besides the directory."
+          },
+          "work": {
+            "type": "object",
+            "required": [
+              "number",
+              "employmentType",
+              "serviceStart",
+              "probationEnd",
+              "contract",
+              "contractEnd",
+              "endDate",
+              "endReason"
+            ],
+            "properties": {
+              "number": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "employmentType": {
+                "type": "string",
+                "enum": [
+                  "full_time",
+                  "part_time",
+                  "intern",
+                  "contractor"
+                ]
+              },
+              "serviceStart": {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-12-01"
+                ]
+              },
+              "probationEnd": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-12-01"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "contract": {
+                "type": "string",
+                "enum": [
+                  "indefinite",
+                  "fixed"
+                ]
+              },
+              "contractEnd": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-12-01"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "endDate": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-12-01"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "endReason": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "personal": {
+            "type": "object",
+            "required": [
+              "birthDate",
+              "gender",
+              "maritalStatus",
+              "nationalId",
+              "nationality",
+              "phone",
+              "personalEmail",
+              "address",
+              "emergencyContact"
+            ],
+            "properties": {
+              "birthDate": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-12-01"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "gender": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "female",
+                      "male",
+                      "other"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "maritalStatus": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "single",
+                      "married",
+                      "divorced",
+                      "widowed"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "nationalId": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "T.C. kimlik no, checked by its check digits, or another national id."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "nationality": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "phone": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "personalEmail": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "address": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "emergencyContact": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "name",
+                      "relation",
+                      "phone"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "relation": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "phone": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "pay": {
+            "type": "object",
+            "required": [
+              "iban",
+              "bankName",
+              "current"
+            ],
+            "properties": {
+              "iban": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "bankName": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "current": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "from",
+                      "amount",
+                      "currency",
+                      "period",
+                      "createdAt",
+                      "createdBy"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "from": {
+                        "type": "string",
+                        "format": "date",
+                        "examples": [
+                          "2026-12-01"
+                        ]
+                      },
+                      "amount": {
+                        "type": "number",
+                        "description": "In the currency's units, gross unless your payroll says otherwise."
+                      },
+                      "currency": {
+                        "type": "string"
+                      },
+                      "period": {
+                        "type": "string",
+                        "enum": [
+                          "month",
+                          "hour",
+                          "year"
+                        ]
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "createdBy": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "identity": {
+            "type": "object",
+            "required": [
+              "linked",
+              "accountId",
+              "state",
+              "error",
+              "at"
+            ],
+            "properties": {
+              "linked": {
+                "type": "boolean"
+              },
+              "accountId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "state": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "disabled"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "error": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "can": {
+            "type": "object",
+            "required": [
+              "edit",
+              "editContact",
+              "delete"
+            ],
+            "properties": {
+              "edit": {
+                "type": "boolean"
+              },
+              "editContact": {
+                "type": "boolean"
+              },
+              "delete": {
+                "type": "boolean"
+              }
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "EmployeeInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "firstName, lastName and startDate are needed for a new record. Leave a field out to keep it, null to clear it. People change phone, personalEmail, address and emergencyContact on their own record; the rest is HR's.",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "preferredName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "workEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "A department's id."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "A position's id."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manager": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "An employee's id; not someone who reports to them."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "A location id from the file."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-12-01"
+            ]
+          },
+          "employmentType": {
+            "type": "string",
+            "enum": [
+              "full_time",
+              "part_time",
+              "intern",
+              "contractor"
+            ]
+          },
+          "serviceStart": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-12-01"
+                ],
+                "description": "When service with you began, if before startDate: seniority counts from it."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "probationEnd": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-12-01"
+                ],
+                "description": "Two months after the start unless given."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contract": {
+            "type": "string",
+            "enum": [
+              "indefinite",
+              "fixed"
+            ]
+          },
+          "contractEnd": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-12-01"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-12-01"
+                ],
+                "description": "The last day. Setting it starts the leaving checklist and Identity turns the account off on it."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "birthDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-12-01"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "female",
+                  "male",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maritalStatus": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "single",
+                  "married",
+                  "divorced",
+                  "widowed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nationalId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nationality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "personalEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "emergencyContact": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "name",
+                  "phone"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "relation": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "phone": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "iban": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bankName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "Pay": {
+        "type": "object",
+        "required": [
+          "id",
+          "from",
+          "amount",
+          "currency",
+          "period",
+          "createdAt",
+          "createdBy"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-12-01"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "description": "In the currency's units, gross unless your payroll says otherwise."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "month",
+              "hour",
+              "year"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string"
+          }
+        }
+      },
+      "Document": {
+        "type": "object",
+        "required": [
+          "id",
+          "employeeId",
+          "kind",
+          "kindName",
+          "name",
+          "contentType",
+          "size",
+          "expiresOn",
+          "expired",
+          "expiresSoon",
+          "uploadedAt",
+          "uploadedBy"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "employeeId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "kindName": {
+            "type": "object",
+            "required": [
+              "en",
+              "de",
+              "tr"
+            ],
+            "properties": {
+              "en": {
+                "type": "string"
+              },
+              "de": {
+                "type": "string"
+              },
+              "tr": {
+                "type": "string"
+              }
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": [
+              "application/pdf",
+              "image/png",
+              "image/jpeg"
+            ]
+          },
+          "size": {
+            "type": "integer"
+          },
+          "expiresOn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-12-01"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expired": {
+            "type": "boolean"
+          },
+          "expiresSoon": {
+            "type": "boolean",
+            "description": "Expires within its kind's warn_before."
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uploadedBy": {
+            "type": "string"
+          }
+        }
+      },
+      "LeaveRequest": {
+        "type": "object",
+        "required": [
+          "id",
+          "employee",
+          "type",
+          "typeName",
+          "paid",
+          "startDate",
+          "endDate",
+          "startHalf",
+          "endHalf",
+          "days",
+          "status",
+          "note",
+          "documentId",
+          "needsDocument",
+          "steps",
+          "waitingFor",
+          "canDecide",
+          "canCancel",
+          "createdAt",
+          "createdBy",
+          "decidedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "employee": {
+            "type": "object",
+            "required": [
+              "id",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "null for colleagues when the type is not shown to them, such as sick leave."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "typeName": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "en",
+                  "de",
+                  "tr"
+                ],
+                "properties": {
+                  "en": {
+                    "type": "string"
+                  },
+                  "de": {
+                    "type": "string"
+                  },
+                  "tr": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "paid": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-12-01"
+            ]
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-12-01"
+            ]
+          },
+          "startHalf": {
+            "type": "boolean",
+            "description": "The first day starts at noon."
+          },
+          "endHalf": {
+            "type": "boolean",
+            "description": "The last day ends at noon."
+          },
+          "days": {
+            "type": "number",
+            "description": "Days it takes, by the type's rule: working days leave out days off and public holidays."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "cancelled"
+            ]
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "documentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "needsDocument": {
+            "type": "boolean"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "kind",
+                "approver",
+                "decision",
+                "by",
+                "at",
+                "note"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "manager",
+                    "second_manager",
+                    "hr",
+                    "member"
+                  ]
+                },
+                "approver": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "decision": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "approved",
+                        "rejected"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "by": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "at": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "note": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "waitingFor": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "approver"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "approver": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "properties": {
+                          "id": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "canDecide": {
+            "type": "boolean"
+          },
+          "canCancel": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "Balance": {
+        "type": "object",
+        "required": [
+          "type",
+          "name",
+          "paid",
+          "hasBalance",
+          "pending",
+          "takenThisYear"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "object",
+            "required": [
+              "en",
+              "de",
+              "tr"
+            ],
+            "properties": {
+              "en": {
+                "type": "string"
+              },
+              "de": {
+                "type": "string"
+              },
+              "tr": {
+                "type": "string"
+              }
+            }
+          },
+          "paid": {
+            "type": "boolean"
+          },
+          "hasBalance": {
+            "type": "boolean",
+            "description": "false for types granted per request, such as sick or marriage leave."
+          },
+          "perRequest": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "granted": {
+            "type": "number"
+          },
+          "adjusted": {
+            "type": "number"
+          },
+          "expired": {
+            "type": "number"
+          },
+          "taken": {
+            "type": "number"
+          },
+          "pending": {
+            "type": "number"
+          },
+          "balance": {
+            "type": "number",
+            "description": "Granted and adjusted, less expired and approved."
+          },
+          "available": {
+            "type": "number",
+            "description": "The balance less pending requests."
+          },
+          "advance": {
+            "type": "number"
+          },
+          "takenThisYear": {
+            "type": "number"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "date",
+                  "days"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-12-01"
+                    ]
+                  },
+                  "days": {
+                    "type": "number"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ledger": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "day",
+                "days",
+                "kind",
+                "note"
+              ],
+              "properties": {
+                "day": {
+                  "type": "string",
+                  "format": "date",
+                  "examples": [
+                    "2026-12-01"
+                  ]
+                },
+                "days": {
+                  "type": "number"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "accrual",
+                    "expiry",
+                    "adjustment"
+                  ]
+                },
+                "note": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "Task": {
+        "type": "object",
+        "required": [
+          "id",
+          "task",
+          "text",
+          "who",
+          "assignee",
+          "dueDate",
+          "overdue",
+          "doneAt",
+          "doneBy",
+          "canDo"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string"
+          },
+          "text": {
+            "type": "object",
+            "required": [
+              "en",
+              "de",
+              "tr"
+            ],
+            "properties": {
+              "en": {
+                "type": "string"
+              },
+              "de": {
+                "type": "string"
+              },
+              "tr": {
+                "type": "string"
+              }
+            }
+          },
+          "who": {
+            "type": "string",
+            "enum": [
+              "hr",
+              "manager",
+              "employee",
+              "member"
+            ]
+          },
+          "assignee": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "properties": {
+                  "id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-12-01"
+            ]
+          },
+          "overdue": {
+            "type": "boolean"
+          },
+          "doneAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "doneBy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "canDo": {
+            "type": "boolean"
+          },
+          "employee": {
+            "type": "object",
+            "required": [
+              "id",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Checklist": {
+        "type": "object",
+        "required": [
+          "id",
+          "checklist",
+          "name",
+          "on",
+          "anchor",
+          "cancelled",
+          "done",
+          "total",
+          "overdue",
+          "tasks",
+          "identity"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "checklist": {
+            "type": "string"
+          },
+          "name": {
+            "type": "object",
+            "required": [
+              "en",
+              "de",
+              "tr"
+            ],
+            "properties": {
+              "en": {
+                "type": "string"
+              },
+              "de": {
+                "type": "string"
+              },
+              "tr": {
+                "type": "string"
+              }
+            }
+          },
+          "on": {
+            "type": "string",
+            "enum": [
+              "start",
+              "end"
+            ]
+          },
+          "anchor": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-12-01"
+            ]
+          },
+          "cancelled": {
+            "type": "boolean"
+          },
+          "done": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "overdue": {
+            "type": "integer"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "task",
+                "text",
+                "who",
+                "assignee",
+                "dueDate",
+                "overdue",
+                "doneAt",
+                "doneBy",
+                "canDo"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "task": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "object",
+                  "required": [
+                    "en",
+                    "de",
+                    "tr"
+                  ],
+                  "properties": {
+                    "en": {
+                      "type": "string"
+                    },
+                    "de": {
+                      "type": "string"
+                    },
+                    "tr": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "who": {
+                  "type": "string",
+                  "enum": [
+                    "hr",
+                    "manager",
+                    "employee",
+                    "member"
+                  ]
+                },
+                "assignee": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "dueDate": {
+                  "type": "string",
+                  "format": "date",
+                  "examples": [
+                    "2026-12-01"
+                  ]
+                },
+                "overdue": {
+                  "type": "boolean"
+                },
+                "doneAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "doneBy": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "canDo": {
+                  "type": "boolean"
+                },
+                "employee": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "identity": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "status",
+                  "accountId",
+                  "error"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "waiting",
+                      "done",
+                      "failed"
+                    ]
+                  },
+                  "accountId": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "OrgNode": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "position",
+          "department",
+          "reports"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrgNode"
+            }
+          }
+        }
+      },
+      "Upcoming": {
+        "type": "object",
+        "required": [
+          "date",
+          "kind",
+          "employee",
+          "detail"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-12-01"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "start",
+              "end",
+              "probation-end",
+              "contract-end",
+              "anniversary",
+              "document-expires"
+            ]
+          },
+          "employee": {
+            "type": "object",
+            "required": [
+              "id",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Years for an anniversary, the reason for an end, the document's name."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "Absence": {
+        "type": "object",
+        "required": [
+          "id",
+          "employee",
+          "startDate",
+          "endDate",
+          "startHalf",
+          "endHalf",
+          "status",
+          "type",
+          "typeName"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "employee": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "workEmail",
+              "departmentId"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "workEmail": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "departmentId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-12-01"
+            ]
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-12-01"
+            ]
+          },
+          "startHalf": {
+            "type": "boolean"
+          },
+          "endHalf": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "pending"
+            ]
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "typeName": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "en",
+                  "de",
+                  "tr"
+                ],
+                "properties": {
+                  "en": {
+                    "type": "string"
+                  },
+                  "de": {
+                    "type": "string"
+                  },
+                  "tr": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "PayrollEmployee": {
+        "type": "object",
+        "required": [
+          "id",
+          "number",
+          "name",
+          "workEmail",
+          "startDate",
+          "endDate",
+          "employmentType",
+          "departmentId",
+          "nationalId",
+          "pay",
+          "iban",
+          "leave",
+          "annualBalance"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "workEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-12-01"
+            ]
+          },
+          "endDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-12-01"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "employmentType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "departmentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nationalId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pay": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "from",
+                  "amount",
+                  "currency",
+                  "period",
+                  "createdAt",
+                  "createdBy"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "from": {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-12-01"
+                    ]
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "In the currency's units, gross unless your payroll says otherwise."
+                  },
+                  "currency": {
+                    "type": "string"
+                  },
+                  "period": {
+                    "type": "string",
+                    "enum": [
+                      "month",
+                      "hour",
+                      "year"
+                    ]
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "createdBy": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "iban": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "leave": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "paid",
+                    "days"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "paid": {
+                      "type": "boolean"
+                    },
+                    "days": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "annualBalance": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "The first type with a balance (annual leave by default), on the month's last day or today."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

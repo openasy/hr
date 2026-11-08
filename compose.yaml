@@ -1,0 +1,39 @@
+# HR. Leave types, approval rules, holidays, checklists, who reads what and the link to Identity are in hr.yaml;
+# people are kept in HR itself.
+#
+#   openssl rand -hex 32 > openasy-kek   # the install's key: personal data, documents and sign-in secrets are sealed with it (ADR 0021). Keep it with your backups
+#   docker compose up -d
+#   docker compose logs hr | grep 'no owner yet'   # the one-time link that creates the owner account
+services:
+  hr:
+    image: ghcr.io/openasy/hr:0.1.0
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: [/tmp]
+    ports:
+      - "127.0.0.1:8080:8080" # API and its reference; put a TLS proxy in front
+    volumes:
+      - hr-data:/data # SQLite database: records, leave and documents, personal data sealed
+      - ./config:/config:ro # hr.yaml; mount the folder so an editor's save reaches it
+    secrets:
+      - openasy-kek # mounted at /run/secrets/openasy-kek; HR does not start without it
+    environment:
+      # The address people open HR at; links in emails use it.
+      HR_PUBLIC_URL: ${HR_PUBLIC_URL:-http://localhost:8080}
+      HR_CONFIG: /config/hr.yaml
+      # The secrets hr.yaml names, never written in the file itself:
+      # HR_MAIL_PASSWORD: ${HR_MAIL_PASSWORD}
+      # HR_IDENTITY_TOKEN: ${HR_IDENTITY_TOKEN}   # Identity's provisioning token, from Identity, Settings, Provisioning
+      # Sign in with your identity provider (OIDC), see the README:
+      # OPENASY_OIDC_ISSUER: https://login.example.com
+      # OPENASY_OIDC_CLIENT_ID: hr
+      # OPENASY_OIDC_CLIENT_SECRET: ${OPENASY_OIDC_CLIENT_SECRET}
+
+volumes:
+  hr-data:
+
+secrets:
+  openasy-kek:
+    file: ./openasy-kek

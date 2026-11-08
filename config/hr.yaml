@@ -1,0 +1,116 @@
+# HR's settings. This file is the only place they are changed; a change is picked up within a minute, and a file with
+# a mistake leaves the last good one in place. People, their leave and documents are kept in HR itself.
+# Left out, a section takes Türkiye's defaults; they are written out here so they can be read and changed.
+time_zone: Europe/Istanbul
+language: tr # the emails HR sends: tr, en or de
+work_week: [mon, tue, wed, thu, fri]
+
+locations:
+  istanbul: { name: İstanbul HQ }
+  izmir: { name: İzmir factory, work_week: [mon, tue, wed, thu, fri, sat] }
+
+holidays:
+  country: tr # Türkiye's national holidays, and Ramazan and Kurban Bayramı for 2025 to 2027, are built in
+  add: # later years' Bayrams once they are announced, and your own days off
+    # - { date: 2028-02-25, name: { tr: Ramazan Bayramı arifesi, en: Ramadan Feast eve }, half: true }
+    - { date: 2026-12-31, name: { tr: Yılbaşı arifesi, en: New Year's Eve }, half: true }
+  # remove: [2026-07-15]
+
+# Leave types. Working days leave out the week's days off and public holidays (İş Kanunu md. 56); calendar days
+# count every day. Anniversary grants come on each anniversary of service (md. 53, 54); yearly ones on 1 January.
+leave_types:
+  annual:
+    name: { tr: Yıllık izin, en: Annual leave, de: Jahresurlaub }
+    accrual: anniversary
+    by_seniority: { 1: 14, 6: 20, 15: 26 } # completed years of service: days
+    at_least: { days: 20, age_up_to: 18, age_from: 50 }
+    carry_over: all # unused annual leave does not expire under Turkish law
+    advance: 0 # days a balance may go below zero
+    approval: standard
+  marriage: { name: { tr: Evlilik izni, en: Marriage leave }, per_request: 3, approval: standard }
+  bereavement: { name: { tr: Ölüm izni, en: Bereavement leave }, per_request: 3, approval: standard }
+  paternity: { name: { tr: Babalık izni, en: Paternity leave }, per_request: 5, approval: standard }
+  maternity:
+    name: { tr: Doğum izni, en: Maternity leave }
+    paid: false # paid by SGK, not by you
+    counts: calendar_days
+    per_request: 126
+    document: health-report
+    approval: hr
+    shown_to_colleagues: false
+  sick:
+    name: { tr: Hastalık izni (rapor), en: Sick leave }
+    paid: false
+    counts: calendar_days
+    document: health-report
+    approval: hr
+    shown_to_colleagues: false # colleagues see only that they are away
+  unpaid: { name: { tr: Ücretsiz izin, en: Unpaid leave }, paid: false, approval: standard }
+
+# The steps a request goes through: manager, second_manager, hr or a member's email. [] approves at once.
+approvals:
+  standard: [manager, hr]
+  manager: [manager]
+  hr: [hr]
+  none: []
+
+documents:
+  contract: { name: { tr: İş sözleşmesi, en: Employment contract } }
+  id-copy: { name: { tr: Kimlik fotokopisi, en: ID copy }, expires: true }
+  health-report: { name: { tr: Sağlık raporu, en: Health report } }
+  work-permit: { name: { tr: Çalışma izni, en: Work permit }, expires: true, warn_before: 60d }
+  certificate: { name: { tr: Sertifika, en: Certificate }, expires: true }
+  other: { name: { tr: Diğer, en: Other } }
+
+checklists:
+  onboarding:
+    name: { tr: İşe giriş, en: Joining }
+    on: start
+    tasks: # due: days from the start day
+      - { id: sgk, text: { tr: İlk günden önce SGK işe giriş bildirgesini ver, en: Register with SGK before the first day }, who: hr, due: -1d }
+      - { id: contract, text: { tr: Sözleşmeyi imzala, en: Sign the contract }, who: hr, due: 0d }
+      - { id: laptop, text: { tr: Bilgisayarı hazırla, en: Prepare the laptop }, who: manager, due: -3d }
+      - { id: details, text: { tr: Kişisel bilgilerini ve banka hesabını kontrol et, en: Check your details and bank account }, who: employee, due: 3d }
+  offboarding:
+    name: { tr: İşten çıkış, en: Leaving }
+    on: end
+    tasks: # due: days from the end day; Identity turns the account off by itself
+      - { id: handover, text: { tr: Açık işleri devret, en: Hand over open work }, who: manager, due: -3d }
+      - { id: equipment, text: { tr: "Bilgisayarı, kartı ve anahtarları teslim al", en: "Collect the laptop, badge and keys" }, who: manager, due: 0d }
+      - { id: final-pay, text: { tr: Son maaşı ve kullanılmayan yıllık izin ücretini öde, en: Pay the final salary and unused annual leave }, who: hr, due: 0d }
+      - { id: sgk, text: { tr: SGK işten ayrılış bildirgesini 10 gün içinde ver, en: Report the leaving to SGK within 10 days }, who: hr, due: 10d }
+
+# Who reads each part of a record besides admins: self, manager (anyone above them), viewer and editor (HR and
+# the tokens of other products). Everyone signed in reads the directory: name, work email, team and manager.
+access:
+  work: [self, manager, viewer] # contract, dates, employee number
+  personal: [self, editor] # birth date, T.C. kimlik no, contact details
+  pay: [self, viewer] # salary and bank account; Payroll's token has the viewer role
+  documents: [self, editor]
+  leave: [self, manager, viewer] # types, including sick leave, and balances
+
+retention:
+  after_leaving: 10y # records are deleted this long after the end day; what you must keep is a legal question
+  access_log: 2y
+
+notify:
+  hr: [hr@example.com] # leave waiting for HR and documents that expire
+
+
+# mail:
+#   host: smtp.example.com
+#   port: 587
+#   security: starttls
+#   user: hr@example.com
+#   password: HR_MAIL_PASSWORD # the variable that holds it
+#   from: HR <hr@example.com>
+
+# Identity: accounts follow joining, moving and leaving, through Identity's SCIM endpoint with the provisioning token
+# from Identity, Settings, Provisioning.
+# identity:
+#   url: http://identity:8080
+#   token: HR_IDENTITY_TOKEN
+#   create_at: "07:00" # on the start day, in time_zone
+#   create_days_before: 0
+#   disable_at: "18:00" # on the end day
+#   groups: { departments: true, all: [Employees] }
