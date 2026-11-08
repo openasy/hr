@@ -119,6 +119,31 @@ export function grants(
   return out;
 }
 
+/**
+ * What a type grants the person a year at their service today, and why: nothing yet (`none`), the band of completed
+ * years they are in (`seniority`, from `from` years up to before `to`), or the age rule's floor (`age`). The age
+ * itself is not given: it is part of the personal part.
+ */
+export function currentGrant(
+  type: LeaveType,
+  p: { serviceStart: string; birthDate: string | null },
+  today: string,
+): { years: number; days: number; rule: "none" | "seniority" | "age"; from: number | null; to: number | null } {
+  const years = Math.max(0, yearsBetween(p.serviceStart, today));
+  const bands = [...type.bySeniority].sort((a, b) => a[0] - b[0]);
+  const at = bands.filter(([from]) => years >= from).at(-1);
+  const to = bands.find(([from]) => from > years)?.[0] ?? null;
+  const days = daysForYears(type, years);
+  if (!at || days <= 0) return { years, days: 0, rule: "none", from: null, to };
+  const a = type.atLeast;
+  if (a && p.birthDate) {
+    const age = yearsBetween(p.birthDate, today);
+    if (((a.ageUpTo !== null && age <= a.ageUpTo) || (a.ageFrom !== null && age >= a.ageFrom)) && a.days > days)
+      return { years, days: a.days, rule: "age", from: at[0], to };
+  }
+  return { years, days, rule: "seniority", from: at[0], to };
+}
+
 /** The next grant after `today`, to show what is coming. */
 export function nextGrant(type: LeaveType, p: Parameters<typeof grants>[1], today: string): Grant | null {
   if (type.accrual === "none" || (p.endDate && p.endDate <= today)) return null;

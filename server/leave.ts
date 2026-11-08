@@ -13,7 +13,7 @@ import { atLeast } from "@openasy/auth";
 import type { Step } from "./config.ts";
 import type { Core, EmployeeRow, Viewer } from "./core.ts";
 import { addDays, addMonths, daysBetween, isDay } from "./dates.ts";
-import { countDays, grants, halfUnits, holidaysOf, nextGrant } from "./rules.ts";
+import { countDays, currentGrant, grants, halfUnits, holidaysOf, nextGrant } from "./rules.ts";
 import { bad, body, conflict, forbidden, notFound, optText } from "./store.ts";
 
 interface RequestRow {
@@ -114,9 +114,41 @@ export function createLeave(c: Core) {
   function balances(v: Viewer, id: string) {
     const e = c.requireEmployee(id);
     c.requireRead(v, e.id, "leave");
+    c.logAccess(v, e.id, "leave", ["leave"]);
+    return balancesOf(e);
+  }
+
+  /**
+   * One type's balance for everyone working whose leave part the viewer reads, such as HR's table of annual leave. Each
+   * person's look is written to their access log.
+   */
+  function balanceList(v: Viewer, q: URLSearchParams) {
+    const types = c.cfg().leaveTypes.filter((t) => t.accrual !== "none");
+    const type = q.get("type") ?? types[0]?.id;
+    if (!type || !types.some((t) => t.id === type)) throw bad(`type is one with a balance: ${types.map((t) => t.id).join(", ")}.`);
+    const day = c.today();
+    const line = c.managers();
+    return c
+      .q<EmployeeRow>("SELECT * FROM employees ORDER BY last_name COLLATE NOCASE, first_name COLLATE NOCASE")
+      .filter((e) => c.statusOf(e, day) === "active" && c.canRead(v, e.id, "leave", line))
+      .map((e) => {
+        c.logAccess(v, e.id, "balances", ["leave"]);
+        const b = balancesOf(e).find((x) => x.type === type)!;
+        return {
+          employee: { id: e.id, name: c.displayName(e) },
+          type,
+          grant: b.grant ?? null,
+          balance: b.balance ?? 0,
+          available: b.available ?? 0,
+          pending: b.pending,
+          next: b.next ?? null,
+        };
+      });
+  }
+
+  function balancesOf(e: EmployeeRow) {
     accrue(e);
     const year = c.today().slice(0, 4);
-    c.logAccess(v, e.id, "leave", ["leave"]);
     return c.cfg().leaveTypes.map((t) => {
       const taken = requested(e.id, t.id, "approved");
       const pending = requested(e.id, t.id, "pending");
@@ -152,6 +184,7 @@ export function createLeave(c: Core) {
         available: r2(balance - pending),
         advance: t.advance,
         takenThisYear: r2(thisYear),
+        grant: currentGrant(t, person(e), c.today()),
         next: next ? { date: next.date, days: next.days } : null,
         ledger: ledger.map((l) => ({ day: l.day, days: l.days, kind: l.kind, note: l.note })),
       };
@@ -560,6 +593,7 @@ export function createLeave(c: Core) {
     accrue,
     accrueAll,
     balances,
+    balanceList,
     adjust,
     quote,
     createRequest,

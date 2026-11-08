@@ -71,6 +71,8 @@ export function createHr(db: DatabaseSync, o: HrOptions) {
 
   function me(actor: Actor) {
     const v = viewer(actor);
+    const id = c.cfg().identity;
+    const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
     const e = v.employeeId ? c.employee(v.employeeId) : undefined;
     const reports = v.employeeId ? c.one<{ n: number }>("SELECT COUNT(*) AS n FROM employees WHERE manager_id = ?", v.employeeId)!.n : 0;
     return {
@@ -80,6 +82,18 @@ export function createHr(db: DatabaseSync, o: HrOptions) {
       hr: atLeast(actor.role, "viewer"),
       waitingForMe: leave.list(v, new URLSearchParams({ scope: "approvals" })).length,
       tasks: checklists.mine(v, false).length,
+      leaveTypes: c.cfg().leaveTypes.map((t) => ({
+        id: t.id,
+        name: t.name,
+        paid: t.paid,
+        counts: t.counts,
+        hasBalance: t.accrual !== "none",
+        perRequest: t.perRequest,
+        halfDays: t.halfDays,
+        document: t.document,
+      })),
+      documentKinds: c.cfg().documents.map((d) => ({ id: d.id, name: d.name, expires: d.expires, warnDays: d.warnDays })),
+      identity: id ? { createAt: hhmm(id.createAt), createDaysBefore: id.createDaysBefore, disableAt: hhmm(id.disableAt) } : null,
     };
   }
 
@@ -218,6 +232,7 @@ export function createHr(db: DatabaseSync, o: HrOptions) {
     updateEmployee: as((v, id: string, raw: unknown) => people.updateEmployee(v, id, raw)),
     removeEmployee: as(people.removeEmployee),
     history: as(people.history),
+    nationalId: as(people.nationalId),
     accessLog: as(people.accessLog),
     listPay: as(people.listPay),
     addPay: as(people.addPay),
@@ -235,10 +250,12 @@ export function createHr(db: DatabaseSync, o: HrOptions) {
       if (!c.canRead(v, e.id, "work") && !atLeast(v.actor.role, "editor")) throw forbidden("You cannot read this person's checklists.");
       return checklists.forEmployee(v, e);
     }),
+    openChecklists: as(checklists.open),
     tasks: as((v, all: boolean) => checklists.mine(v, all)),
     setTask: as(checklists.setDone),
     // leave
     balances: as(leave.balances),
+    balanceList: as(leave.balanceList),
     adjust: as(leave.adjust),
     quoteLeave: as(leave.quote),
     createLeave: as(leave.createRequest),

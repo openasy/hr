@@ -10,9 +10,10 @@ Turkish labour law as the default, joining and leaving checklists, the history o
 at a record. On a start day Identity makes the person's account in their department's group; on the end day it turns
 it off.
 
-**This release is the server and its API.** There are no screens yet: they come once the HR designs are in the
-[ui](https://github.com/openasy/ui) Storybook, so the repository has no `web/` folder and the image serves only the
-API and its reference at `/api/docs/`.
+Its pages follow the HR screens in the [ui](https://github.com/openasy/ui) Storybook: the overview of who joins,
+leaves and is away, people and the org chart, each record by the parts you may read, leave with its calendar and
+balances, joining and leaving checklists, documents that expire, and your own record. The image also serves the API and
+its reference at `/api/docs/`.
 
 ```
 hr.yaml ──▶ hr ──▶ Identity: SCIM 2.0 /scim/v2 (accounts and groups follow joining, moving and leaving)
@@ -186,14 +187,8 @@ docker compose up -d
 docker compose logs hr | grep 'no owner yet'
 ```
 
-The first start prints a one-time link that creates the owner account (ADR 0013). Until the screens exist it opens
-nothing; post its `setup` token to the API instead. Owners and admins who sign in with a password then add an
-authenticator app (`/api/v1/auth/me/totp`) before they add members and tokens (ADR 0002):
-
-```bash
-curl -X POST localhost:8080/api/v1/auth/setup -H 'content-type: application/json' \
-  -d '{"token":"<setup from the link>","name":"Selin Aydın","email":"selin@example.com","password":"<12 or more characters>"}'
-```
+The first start prints a one-time link that creates the owner account (ADR 0013). Owners and admins who sign in with
+a password then add an authenticator app before they add members and tokens (ADR 0002).
 
 | Variable | Default | |
 | --- | --- | --- |
@@ -205,6 +200,7 @@ curl -X POST localhost:8080/api/v1/auth/setup -H 'content-type: application/json
 | `HR_SECRETS_KEY_FILE` | `/run/secrets/openasy-kek` | 32-byte key-encryption key; required |
 | `HR_DB` | `/data/hr.db` | SQLite file (WAL), on the `/data` volume |
 | `HR_METRICS_PORT` | | Serve `/metrics` on this port only (ADR 0026) |
+| `HR_HEADLESS` | `false` | `true` serves no pages; the API stays |
 | `HR_PASSWORD_SIGN_IN`, `OPENASY_OIDC_*` | | Sign-in, as in every OpenAsy product ([@openasy/auth](https://github.com/openasy/auth)) |
 
 The container runs as non-root with a read-only root filesystem, no capabilities and `no-new-privileges`. Responses
@@ -219,11 +215,15 @@ npm test           # the file, the leave rules and Türkiye's holidays, who read
                    # log and history, approvals, balances, documents, checklists, the CSV import, retention, Identity
                    # against a fake SCIM server, and every API response against openapi.json
 npm run openapi    # writes openapi.json after an API change; a test fails while it is out of date
+npm run dev        # the pages, with the API on :8080
 npm start          # HR_DB=./data/hr.db HR_SECRETS_KEY_FILE=./data/kek HR_CONFIG=config/hr.yaml
 ```
 
 Identity is tested against `server/fakes.ts`, which answers as Identity's `server/scim.ts` does; the real Identity is
 not run here. SMTP is a fake mailer in the tests.
+
+The read-only Settings page is rebuilt here from published components (`web/src/FileSettings.tsx`) until the shared
+page is in a published `@openasy/ui`.
 
 ## Licence
 

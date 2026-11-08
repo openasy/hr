@@ -1390,6 +1390,75 @@
         "x-openasy-role": "user"
       }
     },
+    "/api/v1/employees/{id}/national-id": {
+      "get": {
+        "operationId": "employeeNationalId",
+        "tags": [
+          "People"
+        ],
+        "summary": "The whole national id, which the record shows masked",
+        "description": "For those who read the personal part. The read is written to the record's access log as `national-id`.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The employee's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "nationalId"
+                  ],
+                  "properties": {
+                    "nationalId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
+      }
+    },
     "/api/v1/employees/{id}/access-log": {
       "get": {
         "operationId": "employeeAccessLog",
@@ -2161,6 +2230,18 @@
           "Documents"
         ],
         "summary": "Documents expired or expiring within their kind's warn_before",
+        "description": "Of the people whose documents the caller reads.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "parameters": [
+          {
+            "name": "all",
+            "in": "query",
+            "required": false,
+            "description": "true: every document with an expiry day, not only those within warn_before.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -2228,8 +2309,267 @@
             "adminToken": []
           }
         ],
-        "x-openasy-role": "user",
-        "description": "Needs someone signed in (the user role and above); what they read is decided per record by the file's access."
+        "x-openasy-role": "user"
+      }
+    },
+    "/api/v1/checklists": {
+      "get": {
+        "operationId": "checklists",
+        "tags": [
+          "Checklists"
+        ],
+        "summary": "Joining and leaving checklists under way",
+        "description": "Not cancelled, with a task open or a day in the last 30 days, of the people whose work part the caller reads (editors read every one), soonest day first.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "checklists"
+                  ],
+                  "properties": {
+                    "checklists": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/Checklist"
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "employee"
+                            ],
+                            "properties": {
+                              "employee": {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
+      }
+    },
+    "/api/v1/balances": {
+      "get": {
+        "operationId": "balanceList",
+        "tags": [
+          "Leave"
+        ],
+        "summary": "One type's balance for everyone working",
+        "description": "Of the people whose leave part the caller reads. Each person's look is written to their access log as `balances`.\n\nNeeds someone signed in (the user role and above); what they read is decided per record by the file's access.",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "description": "A type with a balance; the first such type in the file by default, annual leave in Türkiye's.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "balances"
+                  ],
+                  "properties": {
+                    "balances": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "employee",
+                          "type",
+                          "grant",
+                          "balance",
+                          "available",
+                          "pending",
+                          "next"
+                        ],
+                        "properties": {
+                          "employee": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "grant": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "years",
+                                  "days",
+                                  "rule",
+                                  "from",
+                                  "to"
+                                ],
+                                "properties": {
+                                  "years": {
+                                    "type": "integer"
+                                  },
+                                  "days": {
+                                    "type": "number"
+                                  },
+                                  "rule": {
+                                    "type": "string",
+                                    "enum": [
+                                      "none",
+                                      "seniority",
+                                      "age"
+                                    ]
+                                  },
+                                  "from": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "to": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "balance": {
+                            "type": "number"
+                          },
+                          "available": {
+                            "type": "number"
+                          },
+                          "pending": {
+                            "type": "number"
+                          },
+                          "next": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "date",
+                                  "days"
+                                ],
+                                "properties": {
+                                  "date": {
+                                    "type": "string",
+                                    "format": "date",
+                                    "examples": [
+                                      "2026-12-01"
+                                    ]
+                                  },
+                                  "days": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "user"
       }
     },
     "/api/v1/tasks": {
@@ -3159,6 +3499,7 @@
                     "updated",
                     "skipped",
                     "errors",
+                    "results",
                     "ignoredColumns",
                     "dryRun"
                   ],
@@ -3192,6 +3533,69 @@
                           }
                         }
                       }
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "row",
+                          "name",
+                          "workEmail",
+                          "result",
+                          "employee",
+                          "message"
+                        ],
+                        "properties": {
+                          "row": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "workEmail": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "result": {
+                            "type": "string",
+                            "enum": [
+                              "created",
+                              "updated",
+                              "skipped"
+                            ]
+                          },
+                          "employee": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "The record's id; null for a dry run and for a skipped row."
+                          },
+                          "message": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "Why a row was skipped."
+                          }
+                        }
+                      },
+                      "description": "Each row and what became of it."
                     },
                     "ignoredColumns": {
                       "type": "array",
@@ -3519,7 +3923,10 @@
           "manages",
           "hr",
           "waitingForMe",
-          "tasks"
+          "tasks",
+          "leaveTypes",
+          "documentKinds",
+          "identity"
         ],
         "properties": {
           "member": {
@@ -3575,6 +3982,153 @@
           },
           "tasks": {
             "type": "integer"
+          },
+          "leaveTypes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "paid",
+                "counts",
+                "hasBalance",
+                "perRequest",
+                "halfDays",
+                "document"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "object",
+                  "required": [
+                    "en",
+                    "de",
+                    "tr"
+                  ],
+                  "properties": {
+                    "en": {
+                      "type": "string"
+                    },
+                    "de": {
+                      "type": "string"
+                    },
+                    "tr": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "paid": {
+                  "type": "boolean"
+                },
+                "counts": {
+                  "type": "string",
+                  "enum": [
+                    "working_days",
+                    "calendar_days"
+                  ]
+                },
+                "hasBalance": {
+                  "type": "boolean"
+                },
+                "perRequest": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "halfDays": {
+                  "type": "boolean"
+                },
+                "document": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "The file's leave types, for asking for leave: what everyone signed in needs of the settings."
+          },
+          "documentKinds": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "expires",
+                "warnDays"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "object",
+                  "required": [
+                    "en",
+                    "de",
+                    "tr"
+                  ],
+                  "properties": {
+                    "en": {
+                      "type": "string"
+                    },
+                    "de": {
+                      "type": "string"
+                    },
+                    "tr": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "expires": {
+                  "type": "boolean"
+                },
+                "warnDays": {
+                  "type": "integer"
+                }
+              }
+            },
+            "description": "The file's document kinds, for adding a document."
+          },
+          "identity": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "createAt",
+                  "createDaysBefore",
+                  "disableAt"
+                ],
+                "properties": {
+                  "createAt": {
+                    "type": "string"
+                  },
+                  "createDaysBefore": {
+                    "type": "integer"
+                  },
+                  "disableAt": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When Identity makes and turns off accounts, in the file's time zone, as HH:MM; null without identity in the file."
           }
         }
       },
@@ -4218,7 +4772,7 @@
                 "anyOf": [
                   {
                     "type": "string",
-                    "description": "T.C. kimlik no, checked by its check digits, or another national id."
+                    "description": "T.C. kimlik no, checked by its check digits, or another national id. Masked here, such as 104•••••846; GET /api/v1/employees/{id}/national-id reads the whole number, and that read is logged."
                   },
                   {
                     "type": "null"
@@ -5334,6 +5888,56 @@
           "takenThisYear": {
             "type": "number"
           },
+          "grant": {
+            "type": "object",
+            "required": [
+              "years",
+              "days",
+              "rule",
+              "from",
+              "to"
+            ],
+            "properties": {
+              "years": {
+                "type": "integer",
+                "description": "Completed years of service today."
+              },
+              "days": {
+                "type": "number",
+                "description": "What the type grants a year at that service."
+              },
+              "rule": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "seniority",
+                  "age"
+                ],
+                "description": "none: nothing yet; seniority: the band from `from` years up to before `to`; age: the age rule's floor."
+              },
+              "from": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "to": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "description": "The yearly grant at the person's service today, and why. The age is not given."
+          },
           "next": {
             "anyOf": [
               {
@@ -5770,7 +6374,8 @@
                       }
                     ]
                   }
-                }
+                },
+                "description": "With identity in the file: for joining, whether Identity made the account; for leaving, whether it turned it off."
               },
               {
                 "type": "null"

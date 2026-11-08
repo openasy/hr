@@ -37,6 +37,9 @@ interface TaskRow {
   done_by: string | null;
 }
 
+/** Days after a start day in which a record added to HR still gets the joining checklist. */
+export const JOINING_WINDOW = 30;
+
 export function createChecklists(c: Core) {
   function start(e: EmployeeRow, on: "start" | "end", anchor: string) {
     for (const list of c.cfg().checklists.filter((l) => l.on === on)) {
@@ -81,7 +84,10 @@ export function createChecklists(c: Core) {
         c.run("UPDATE checklist_tasks SET due_date = ? WHERE id = ?", addDays(anchor, t.offset_days), t.id);
     };
     const starts = runs.filter((r) => r.on_kind === "start");
-    if (!starts.length && !c.one("SELECT 1 FROM checklist_runs WHERE employee_id = ? AND on_kind = 'start'", e.id)) start(e, "start", e.start_date);
+    // Someone who joined long ago, added to HR now or brought in by the import, has nothing left to do for joining.
+    const joinedLongAgo = e.start_date < addDays(c.today(), -JOINING_WINDOW);
+    if (!starts.length && !joinedLongAgo && !c.one("SELECT 1 FROM checklist_runs WHERE employee_id = ? AND on_kind = 'start'", e.id))
+      start(e, "start", e.start_date);
     for (const r of starts) move(r, e.start_date);
     const ends = runs.filter((r) => r.on_kind === "end");
     if (e.end_date && !ends.length) start(e, "end", e.end_date);
@@ -115,31 +121,52 @@ export function createChecklists(c: Core) {
 
   function forEmployee(v: Viewer, e: EmployeeRow) {
     const runs = c.q<RunRow>("SELECT * FROM checklist_runs WHERE employee_id = ? ORDER BY on_kind DESC, created_at", e.id);
+    return runs.map((r) => presentRun(v, r, e));
+  }
+
+  /**
+   * The checklists under way: not cancelled, with a task open or a day in the last 30 days, of the people whose work
+   * part the viewer reads (editors read every one), soonest day first.
+   */
+  function open(v: Viewer) {
     const today = c.today();
-    return runs.map((r) => {
-      const tasks = c.q<TaskRow>("SELECT * FROM checklist_tasks WHERE run_id = ? ORDER BY pos", r.id);
-      const identity =
-        r.on_kind === "end" && c.cfg().identity
-          ? {
-              status: e.identity_state === "disabled" ? "done" : e.identity_error ? "failed" : "waiting",
-              accountId: e.identity_id,
-              error: e.identity_error,
-            }
-          : null;
-      return {
-        id: r.id,
-        checklist: r.checklist,
-        name: words(r.name),
-        on: r.on_kind,
-        anchor: r.anchor,
-        cancelled: !!r.cancelled_at,
-        done: tasks.filter((t) => t.done_at).length,
-        total: tasks.length,
-        overdue: tasks.filter((t) => !t.done_at && t.due_date < today).length,
-        tasks: tasks.map((t) => presentTask(v, t)),
-        identity,
-      };
-    });
+    const editor = atLeast(v.actor.role, "editor");
+    const line = c.managers();
+    return c
+      .q<RunRow>(
+        `SELECT * FROM checklist_runs r WHERE r.cancelled_at IS NULL
+         AND (r.anchor >= ? OR EXISTS (SELECT 1 FROM checklist_tasks t WHERE t.run_id = r.id AND t.done_at IS NULL))
+         ORDER BY r.anchor, r.created_at`,
+        addDays(today, -30),
+      )
+      .filter((r) => editor || c.canRead(v, r.employee_id, "work", line))
+      .map((r) => {
+        const e = c.employee(r.employee_id)!;
+        return { ...presentRun(v, r, e), employee: { id: e.id, name: c.displayName(e) } };
+      });
+  }
+
+  function presentRun(v: Viewer, r: RunRow, e: EmployeeRow) {
+    const today = c.today();
+    const tasks = c.q<TaskRow>("SELECT * FROM checklist_tasks WHERE run_id = ? ORDER BY pos", r.id);
+    // Joining: whether Identity made the account; leaving: whether it turned it off.
+    const done = r.on_kind === "end" ? e.identity_state === "disabled" : !!e.identity_id;
+    const identity = c.cfg().identity
+      ? { status: done ? "done" : e.identity_error ? "failed" : "waiting", accountId: e.identity_id, error: e.identity_error }
+      : null;
+    return {
+      id: r.id,
+      checklist: r.checklist,
+      name: words(r.name),
+      on: r.on_kind,
+      anchor: r.anchor,
+      cancelled: !!r.cancelled_at,
+      done: tasks.filter((t) => t.done_at).length,
+      total: tasks.length,
+      overdue: tasks.filter((t) => !t.done_at && t.due_date < today).length,
+      tasks: tasks.map((t) => presentTask(v, t)),
+      identity,
+    };
   }
 
   /** Open tasks for the viewer: theirs, those of the people they manage for the manager, and HR's for editors. */
@@ -165,7 +192,7 @@ export function createChecklists(c: Core) {
     return presentTask(v, c.one<TaskRow>("SELECT * FROM checklist_tasks WHERE id = ?", id)!, c.employee(t.employee_id));
   }
 
-  return { follow, forEmployee, mine, setDone };
+  return { follow, forEmployee, open, mine, setDone };
 }
 
 export type Checklists = ReturnType<typeof createChecklists>;

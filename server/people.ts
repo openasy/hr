@@ -85,6 +85,15 @@ const groupOf = (field: string): "directory" | Group => {
 };
 const SEALED_GROUPS = new Set<string>(["personal", "pay"]);
 
+/**
+ * A national id as records and their history show it: the first three and last three characters, the rest hidden,
+ * such as 104•••••846. The whole number is read on its own (nationalId below), and that read is logged.
+ */
+export function maskId(id: string | null): string | null {
+  if (!id) return id;
+  return id.length > 6 ? `${id.slice(0, 3)}${"•".repeat(id.length - 6)}${id.slice(-3)}` : "•".repeat(id.length);
+}
+
 const MAX_DOCUMENT = 10 * 1024 * 1024;
 const MAGIC: Record<string, (b: Buffer) => boolean> = {
   "application/pdf": (b) => b.subarray(0, 5).toString("latin1") === "%PDF-",
@@ -242,6 +251,8 @@ export function createPeople(c: Core, checklists: Checklists) {
     return { id: p.id, from: p.from_date, amount: minor / 100, currency: p.currency, period: p.period, createdAt: p.created_at, createdBy: p.created_by };
   }
 
+  const masked = (p: Personal): Personal => ({ ...p, nationalId: maskId(p.nationalId) });
+
   function present(v: Viewer, e: EmployeeRow, line: Map<string, string | null>, detail: boolean) {
     const parts = c.readable(v, e.id, line);
     const dep = department(e.department_id);
@@ -281,7 +292,7 @@ export function createPeople(c: Core, checklists: Checklists) {
           endReason: e.end_reason,
         },
       }),
-      ...(detail && parts.includes("personal") && { personal: c.personalOf(e) }),
+      ...(detail && parts.includes("personal") && { personal: masked(c.personalOf(e)) }),
       ...(detail && parts.includes("pay") && { pay: { ...c.bankOf(e), current: currentPay(e) } }),
       ...(isEditor(v) && {
         identity: {
@@ -330,6 +341,14 @@ export function createPeople(c: Core, checklists: Checklists) {
       out.parts.filter((p) => p === "work" || p === "personal" || p === "pay"),
     );
     return out;
+  }
+
+  /** The whole national id, for those who read the personal part. Each read is written to the access log. */
+  function nationalId(v: Viewer, id: string) {
+    const e = c.requireEmployee(id);
+    c.requireRead(v, e.id, "personal");
+    c.logAccess(v, e.id, "national-id", ["personal"]);
+    return { nationalId: c.personalOf(e).nationalId };
   }
 
   type Input = { cols: Partial<Record<keyof EmployeeRow, string | null>>; personal: Partial<Personal>; bank: Partial<Bank> };
@@ -622,7 +641,9 @@ export function createPeople(c: Core, checklists: Checklists) {
       [...parts].filter((p): p is Group => p !== "directory"),
     );
     const open = (x: string | null, sealed: number) => (x === null ? null : sealed ? c.keyring.open(x, `history:${e.id}`).toString("utf8") : x);
-    return rows.map((h) => ({ at: h.at, by: h.by_name, part: h.grp, field: h.field, from: open(h.old_value, h.sealed), to: open(h.new_value, h.sealed) }));
+    // The national id is masked here as on the record; its whole value is read on its own, logged.
+    const shownAs = (h: HistoryRow, x: string | null) => (h.field === "nationalId" ? maskId(open(x, h.sealed)) : open(x, h.sealed));
+    return rows.map((h) => ({ at: h.at, by: h.by_name, part: h.grp, field: h.field, from: shownAs(h, h.old_value), to: shownAs(h, h.new_value) }));
   }
 
   /** Who looked at a record: for the person themselves (KVKK md. 11) and admins. */
@@ -781,15 +802,18 @@ export function createPeople(c: Core, checklists: Checklists) {
     );
   }
 
-  /** Documents that have expired or expire within their kind's warn_before, of the people the viewer reads. */
-  function expiring(v: Viewer) {
+  /**
+   * Documents that have expired or expire within their kind's warn_before, of the people the viewer reads; with `all`,
+   * every document that has an expiry day.
+   */
+  function expiring(v: Viewer, all = false) {
     const day = c.today();
     const line = c.managers();
     return c
       .q<DocumentRow>("SELECT * FROM documents WHERE expires_on IS NOT NULL ORDER BY expires_on")
       .filter((d) => {
         const kind = c.cfg().documents.find((k) => k.id === d.kind);
-        return d.expires_on! <= addDays(day, kind?.warnDays ?? 30) && c.canRead(v, d.employee_id, "documents", line);
+        return (all || d.expires_on! <= addDays(day, kind?.warnDays ?? 30)) && c.canRead(v, d.employee_id, "documents", line);
       })
       .map((d) => {
         const e = c.employee(d.employee_id)!;
@@ -941,6 +965,14 @@ export function createPeople(c: Core, checklists: Checklists) {
       updated: 0,
       skipped: 0,
       errors: [] as Array<{ row: number; message: string }>,
+      results: [] as Array<{
+        row: number;
+        name: string;
+        workEmail: string | null;
+        result: "created" | "updated" | "skipped";
+        employee: string | null;
+        message: string | null;
+      }>,
       ignoredColumns: header.filter((_h, i) => ![...cols.values()].includes(i)),
       dryRun: b.dryRun === true,
     };
@@ -955,6 +987,8 @@ export function createPeople(c: Core, checklists: Checklists) {
             const at = cols.get(k);
             return at === undefined ? "" : (r[at] ?? "").trim();
           };
+          const rowName = [get("firstName"), get("lastName")].filter(Boolean).join(" ");
+          const rowEmail = get("workEmail").toLowerCase() || null;
           c.db.exec("SAVEPOINT import_row");
           try {
             const input: Record<string, unknown> = {};
@@ -1010,11 +1044,13 @@ export function createPeople(c: Core, checklists: Checklists) {
               );
             }
             c.db.exec("RELEASE import_row");
+            result.results.push({ row, name: rowName, workEmail: rowEmail, result: existing ? "updated" : "created", employee: saved.id, message: null });
           } catch (err) {
             c.db.exec("ROLLBACK TO import_row");
             c.db.exec("RELEASE import_row");
             if (!(err instanceof HrError)) throw err;
             result.errors.push({ row, message: err.message });
+            result.results.push({ row, name: rowName, workEmail: rowEmail, result: "skipped", employee: null, message: err.message });
             result.skipped++;
           }
         });
@@ -1035,6 +1071,8 @@ export function createPeople(c: Core, checklists: Checklists) {
       });
     } catch (err) {
       if (err !== DRY) throw err;
+      // Nothing was kept: the rows name no record.
+      for (const r of result.results) r.employee = null;
     }
     return result;
   }
@@ -1057,6 +1095,7 @@ export function createPeople(c: Core, checklists: Checklists) {
     removeEmployee,
     purgeExpired,
     history,
+    nationalId,
     accessLog,
     currentPay,
     listPay,

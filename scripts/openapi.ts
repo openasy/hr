@@ -60,7 +60,12 @@ const Personal = obj({
   birthDate: nul(day),
   gender: nul(en("female", "male", "other")),
   maritalStatus: nul(en("single", "married", "divorced", "widowed")),
-  nationalId: nul(desc(str, "T.C. kimlik no, checked by its check digits, or another national id.")),
+  nationalId: nul(
+    desc(
+      str,
+      "T.C. kimlik no, checked by its check digits, or another national id. Masked here, such as 104•••••846; GET /api/v1/employees/{id}/national-id reads the whole number, and that read is logged.",
+    ),
+  ),
   nationality: nul(str),
   phone: nul(str),
   personalEmail: nul(str),
@@ -225,6 +230,16 @@ const Balance = obj(
     available: desc(num, "The balance less pending requests."),
     advance: num,
     takenThisYear: num,
+    grant: desc(
+      obj({
+        years: desc(int, "Completed years of service today."),
+        days: desc(num, "What the type grants a year at that service."),
+        rule: desc(en("none", "seniority", "age"), "none: nothing yet; seniority: the band from `from` years up to before `to`; age: the age rule's floor."),
+        from: nul(int),
+        to: nul(int),
+      }),
+      "The yearly grant at the person's service today, and why. The age is not given.",
+    ),
     next: nul(obj({ date: day, days: num })),
     ledger: arr(obj({ day: day, days: num, kind: en("accrual", "expiry", "adjustment"), note: nul(str) })),
   },
@@ -258,7 +273,12 @@ const Checklist = obj({
   total: int,
   overdue: int,
   tasks: arr(Task),
-  identity: nul(obj({ status: en("waiting", "done", "failed"), accountId: nul(str), error: nul(str) })),
+  identity: nul(
+    desc(
+      obj({ status: en("waiting", "done", "failed"), accountId: nul(str), error: nul(str) }),
+      "With identity in the file: for joining, whether Identity made the account; for leaving, whether it turned it off.",
+    ),
+  ),
 });
 
 const Holiday = obj({ date: day, name: Words, half: desc(bool, "Only the afternoon is off: leave on it takes half a day.") });
@@ -275,6 +295,26 @@ const schemas: Record<string, S> = {
     hr: desc(bool, "The viewer role or above: reads everyone's records as the file allows."),
     waitingForMe: int,
     tasks: int,
+    leaveTypes: desc(
+      arr(
+        obj({
+          id: str,
+          name: Words,
+          paid: bool,
+          counts: en("working_days", "calendar_days"),
+          hasBalance: bool,
+          perRequest: nul(num),
+          halfDays: bool,
+          document: nul(str),
+        }),
+      ),
+      "The file's leave types, for asking for leave: what everyone signed in needs of the settings.",
+    ),
+    documentKinds: desc(arr(obj({ id: str, name: Words, expires: bool, warnDays: int })), "The file's document kinds, for adding a document."),
+    identity: desc(
+      nul(obj({ createAt: str, createDaysBefore: int, disableAt: str })),
+      "When Identity makes and turns off accounts, in the file's time zone, as HH:MM; null without identity in the file.",
+    ),
   }),
   Settings: {
     ...obj({ timeZone: str, language: str, workWeek: arr(int), leaveTypes: arr(map), approvals: arr(map), access: map, file: nul(map), text: str }),
@@ -331,6 +371,16 @@ const schemas: Record<string, S> = {
 };
 
 const ExpiringDocument = { allOf: [ref("Document"), obj({ employee: Ref })] };
+const OpenChecklist = { allOf: [ref("Checklist"), obj({ employee: Ref })] };
+const BalanceRow = obj({
+  employee: Ref,
+  type: str,
+  grant: nul(obj({ years: int, days: num, rule: en("none", "seniority", "age"), from: nul(int), to: nul(int) })),
+  balance: num,
+  available: num,
+  pending: num,
+  next: nul(obj({ date: day, days: num })),
+});
 const DocumentInput = obj(
   {
     kind: desc(str, "A kind from the file's documents."),
@@ -536,6 +586,16 @@ const paths: Record<string, S> = {
       responses: { "200": ok(obj({ history: arr(obj({ at: dt, by: str, part: str, field: str, from: nul(str), to: nul(str) })) })), "404": problem },
     }),
   },
+  "/api/v1/employees/{id}/national-id": {
+    get: op("user", {
+      operationId: "employeeNationalId",
+      tags: ["People"],
+      summary: "The whole national id, which the record shows masked",
+      description: "For those who read the personal part. The read is written to the record's access log as `national-id`.",
+      parameters: id("employee"),
+      responses: { "200": ok(obj({ nationalId: nul(str) })), "404": problem },
+    }),
+  },
   "/api/v1/employees/{id}/access-log": {
     get: op("user", {
       operationId: "employeeAccessLog",
@@ -640,7 +700,29 @@ const paths: Record<string, S> = {
       operationId: "expiringDocuments",
       tags: ["Documents"],
       summary: "Documents expired or expiring within their kind's warn_before",
+      description: "Of the people whose documents the caller reads.",
+      parameters: [query("all", "true: every document with an expiry day, not only those within warn_before.")],
       responses: { "200": ok(obj({ documents: arr(ExpiringDocument) })) },
+    }),
+  },
+  "/api/v1/checklists": {
+    get: op("user", {
+      operationId: "checklists",
+      tags: ["Checklists"],
+      summary: "Joining and leaving checklists under way",
+      description:
+        "Not cancelled, with a task open or a day in the last 30 days, of the people whose work part the caller reads (editors read every one), soonest day first.",
+      responses: { "200": ok(obj({ checklists: arr(OpenChecklist) })) },
+    }),
+  },
+  "/api/v1/balances": {
+    get: op("user", {
+      operationId: "balanceList",
+      tags: ["Leave"],
+      summary: "One type's balance for everyone working",
+      description: "Of the people whose leave part the caller reads. Each person's look is written to their access log as `balances`.",
+      parameters: [query("type", "A type with a balance; the first such type in the file by default, annual leave in Türkiye's.")],
+      responses: { "200": ok(obj({ balances: arr(BalanceRow) })), "422": problem },
     }),
   },
 
@@ -785,6 +867,19 @@ const paths: Record<string, S> = {
             updated: int,
             skipped: int,
             errors: arr(obj({ row: int, message: str })),
+            results: desc(
+              arr(
+                obj({
+                  row: int,
+                  name: str,
+                  workEmail: nul(str),
+                  result: en("created", "updated", "skipped"),
+                  employee: desc(nul(str), "The record's id; null for a dry run and for a skipped row."),
+                  message: desc(nul(str), "Why a row was skipped."),
+                }),
+              ),
+              "Each row and what became of it.",
+            ),
             ignoredColumns: arr(str),
             dryRun: bool,
           }),

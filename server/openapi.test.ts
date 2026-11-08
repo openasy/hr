@@ -141,7 +141,7 @@ describe("responses match openapi.json", () => {
           position: ids.pos,
           manager: ids.mgr,
           location: "istanbul",
-          startDate: "2024-06-10",
+          startDate: "2026-10-26",
           birthDate: "1994-02-14",
           nationalId: "10000000146",
           emergencyContact: { name: "Ali Yılmaz", relation: "brother", phone: "+90 555 000 00 00" },
@@ -167,6 +167,8 @@ describe("responses match openapi.json", () => {
     await call("PATCH", "/api/v1/employees/{id}", admin({}), "/api/v1/employees/missing");
     await call("GET", "/api/v1/employees/{id}/history", admin(), `/api/v1/employees/${ids.emp}/history`);
     await call("GET", "/api/v1/employees/{id}/history", admin(), "/api/v1/employees/missing/history");
+    await call("GET", "/api/v1/employees/{id}/national-id", admin(), `/api/v1/employees/${ids.emp}/national-id`);
+    await call("GET", "/api/v1/employees/{id}/national-id", admin(), "/api/v1/employees/missing/national-id");
     await call("GET", "/api/v1/employees/{id}/access-log", admin(), `/api/v1/employees/${ids.emp}/access-log`);
     await call("GET", "/api/v1/employees/{id}/access-log", admin(), "/api/v1/employees/missing/access-log");
     await call("POST", "/api/v1/employees/{id}/pay", admin({ from: "2026-01-01", amount: 85000.5 }), `/api/v1/employees/${ids.emp}/pay`);
@@ -210,6 +212,7 @@ describe("responses match openapi.json", () => {
     expect(file.res.headers.get("content-disposition")).toBe("attachment; filename*=UTF-8''Kimlik.pdf");
     await call("GET", "/api/v1/documents/{id}", admin(), "/api/v1/documents/missing");
     await call("GET", "/api/v1/expiring-documents", admin());
+    await call("GET", "/api/v1/expiring-documents", admin(), "/api/v1/expiring-documents?all=true");
     await call("DELETE", "/api/v1/documents/{id}", admin(), `/api/v1/documents/${ids.doc}`);
     await call("DELETE", "/api/v1/documents/{id}", admin(), `/api/v1/documents/${ids.doc}`);
   });
@@ -217,6 +220,8 @@ describe("responses match openapi.json", () => {
   it("leave", async () => {
     await call("GET", "/api/v1/employees/{id}/balances", admin(), `/api/v1/employees/${ids.emp}/balances`);
     await call("GET", "/api/v1/employees/{id}/balances", admin(), "/api/v1/employees/missing/balances");
+    await call("GET", "/api/v1/balances", admin(), "/api/v1/balances?type=annual");
+    await call("GET", "/api/v1/balances", admin(), "/api/v1/balances?type=sick");
     await call(
       "POST",
       "/api/v1/employees/{id}/balances",
@@ -255,6 +260,7 @@ describe("responses match openapi.json", () => {
   });
 
   it("checklists", async () => {
+    await call("GET", "/api/v1/checklists", admin());
     const { body } = await call("GET", "/api/v1/tasks", admin(), "/api/v1/tasks?all=true");
     const task = body.tasks[0].id;
     await call("GET", "/api/v1/tasks", admin());

@@ -24,7 +24,7 @@ describe("who reads what", () => {
 
     const asAyse = app.hr.getEmployee(AYSE, p.ayse.id);
     expect(asAyse.parts).toEqual(["work", "personal", "pay", "documents", "leave"]);
-    expect(asAyse.personal).toMatchObject({ nationalId: "10000000146", birthDate: "1994-02-14", phone: "+90 532 000 00 12" });
+    expect(asAyse.personal).toMatchObject({ nationalId: "100•••••146", birthDate: "1994-02-14", phone: "+90 532 000 00 12" });
     expect(asAyse.pay).toMatchObject({ iban: "TR330006100519786457841326" });
 
     // HR editors read pay too: they set it. "viewer" in the file means that role and those above it.
@@ -32,6 +32,14 @@ describe("who reads what", () => {
     // Payroll's viewer token reads pay but not the personal part.
     expect(app.hr.getEmployee(VELI, p.ayse.id).parts).toEqual(["work", "pay", "leave"]);
     expect(app.hr.getEmployee(OKAN, p.ayse.id).parts).toEqual(["work", "personal", "pay", "documents", "leave"]);
+  });
+
+  it("tells everyone signed in who they are, what waits for them, and the leave types and document kinds", () => {
+    const me = app.hr.me(MERT);
+    expect(me).toMatchObject({ employee: { id: p.mert.id }, manages: 2, hr: false, identity: { createAt: "07:00", disableAt: "18:00" } });
+    expect(me.leaveTypes.find((t) => t.id === "annual")).toMatchObject({ hasBalance: true, counts: "working_days", halfDays: true });
+    expect(me.leaveTypes.find((t) => t.id === "sick")).toMatchObject({ hasBalance: false, counts: "calendar_days", document: "health-report" });
+    expect(me.documentKinds.find((d) => d.id === "id-copy")).toMatchObject({ expires: true });
   });
 
   it("lets a manager read down the whole reporting line, never up or across", () => {
@@ -98,6 +106,23 @@ describe("personal data at rest", () => {
     expect(() => app.hr.createEmployee(SELIN, { firstName: "X", lastName: "Y", startDate: "2026-12-01", iban: "TR330006100519786457841327" })).toThrow(/IBAN/);
   });
 
+  it("masks the T.C. kimlik number on the record and in its history, and logs each read of the whole number", () => {
+    expect(app.hr.getEmployee(SELIN, p.ayse.id).personal!.nationalId).toBe("100•••••146");
+    expect(app.hr.nationalId(AYSE, p.ayse.id)).toEqual({ nationalId: "10000000146" });
+    expect(app.hr.nationalId(SELIN, p.ayse.id)).toEqual({ nationalId: "10000000146" });
+    // Her manager reads work and leave, not the personal part.
+    expect(() => app.hr.nationalId(MERT, p.ayse.id)).toThrow(/cannot read the personal part/);
+    expect(() => app.hr.nationalId(VELI, p.ayse.id)).toThrow(/cannot read the personal part/);
+    const reads = app.hr.accessLog(OKAN, p.ayse.id).filter((l) => l.what === "national-id");
+    expect(reads.map((l) => [l.by, l.as, l.parts])).toEqual([
+      ["Selin Aydın", "editor", ["personal"]],
+      ["Ayşe Yılmaz", "self", ["personal"]],
+    ]);
+    app.hr.updateEmployee(SELIN, p.ayse.id, { nationalId: "10000000078" });
+    const change = app.hr.history(SELIN, p.ayse.id).find((h) => h.field === "nationalId")!;
+    expect([change.from, change.to]).toEqual(["100•••••146", "100•••••078"]);
+  });
+
   it("shows the history of each part only to those who read it", () => {
     app.hr.updateEmployee(SELIN, p.ayse.id, { phone: "+90 533 000 00 00", department: p.eng.id });
     const asMert = app.hr.history(MERT, p.ayse.id).map((h) => h.field);
@@ -137,11 +162,44 @@ describe("leave", () => {
     const r = app.hr.createLeave(CAN, { type: "annual", startDate: "2026-11-16", endDate: "2026-11-20" });
     expect(r.days).toBe(5);
     const b = app.hr.balances(CAN, p.can.id).find((x) => x.type === "annual")!;
-    expect(b).toMatchObject({ balance: 9, pending: 5, available: 4, next: { date: "2027-06-10", days: 14 } });
+    expect(b).toMatchObject({
+      balance: 9,
+      pending: 5,
+      available: 4,
+      grant: { years: 2, days: 14, rule: "seniority", from: 1, to: 6 },
+      next: { date: "2027-06-10", days: 14 },
+    });
     expect(() => app.hr.createLeave(CAN, { type: "annual", startDate: "2026-11-23", endDate: "2026-11-27" })).toThrow(/Not enough/);
     // On the anniversary the third year's 14 days come.
     app.clock.set(Date.parse("2027-06-10T06:00:00Z"));
     expect(app.hr.balances(CAN, p.can.id).find((x) => x.type === "annual")).toMatchObject({ granted: 14, balance: 23 });
+  });
+
+  it("lists one type's balance for everyone working whose leave the caller reads, logging each look", () => {
+    // Mert, born 1980, has eleven years: 20 days by seniority. Can has two: 14.
+    const asHr = app.hr.balanceList(VELI, new URLSearchParams());
+    expect(asHr.map((b) => [b.employee.name, b.grant?.days, b.grant?.rule])).toEqual([
+      ["Can Öztürk", 14, "seniority"],
+      ["Mert Şahin", 20, "seniority"],
+    ]);
+    // Mert reads his reports' leave, not his own manager's; Ayşe and Deniz have not started.
+    expect(app.hr.balanceList(MERT, new URLSearchParams({ type: "annual" })).map((b) => b.employee.name)).toEqual(["Can Öztürk", "Mert Şahin"]);
+    expect(app.hr.balanceList(CAN, new URLSearchParams()).map((b) => b.employee.name)).toEqual(["Can Öztürk"]);
+    expect(() => app.hr.balanceList(VELI, new URLSearchParams({ type: "sick" }))).toThrow(/type is one with a balance/);
+    expect(
+      app.hr
+        .accessLog(CAN, p.can.id)
+        .filter((l) => l.what === "balances")
+        .map((l) => l.by),
+    ).toEqual(["Can Öztürk", "Mert Şahin", "Veli Kaya"]);
+  });
+
+  it("gives the age rule's floor as the grant, without the age", () => {
+    const young = app.hr.createEmployee(SELIN, { firstName: "Ece", lastName: "Genç", startDate: "2024-09-01", birthDate: "2008-12-01" });
+    const b = app.hr.balances(SELIN, young.id).find((x) => x.type === "annual")!;
+    expect(b.grant).toEqual({ years: 2, days: 20, rule: "age", from: 1, to: 6 });
+    const fresh = app.hr.createEmployee(SELIN, { firstName: "Yeni", lastName: "Kişi", startDate: "2026-10-01" });
+    expect(app.hr.balances(SELIN, fresh.id).find((x) => x.type === "annual")!.grant).toMatchObject({ years: 0, days: 0, rule: "none" });
   });
 
   it("refuses overlaps, but not the two halves of one day", () => {
@@ -235,6 +293,28 @@ describe("checklists", () => {
     app.hr.updateEmployee(SELIN, p.can.id, { endDate: null });
     expect(app.hr.checklists(SELIN, p.can.id).find((l) => l.on === "end")!.cancelled).toBe(true);
   });
+
+  it("starts no joining checklist for someone who joined more than 30 days before the record was added", () => {
+    // Mert started in 2015 and Can in 2024: imported staff have nothing left to do for joining.
+    expect(app.hr.checklists(SELIN, p.mert.id)).toEqual([]);
+    expect(app.hr.checklists(SELIN, p.can.id)).toEqual([]);
+    const recent = app.hr.createEmployee(SELIN, { firstName: "Yeni", lastName: "Gelen", startDate: "2026-10-20" });
+    expect(app.hr.checklists(SELIN, recent.id).map((l) => l.on)).toEqual(["start"]);
+  });
+
+  it("lists the checklists under way, for HR all and for a manager those of the people below them", () => {
+    app.hr.updateEmployee(SELIN, p.can.id, { endDate: "2026-11-30" });
+    const asHr = app.hr.openChecklists(SELIN);
+    // Mert and Can joined years ago and have no joining checklist; Ayşe and Deniz join on 1 December.
+    expect(asHr.filter((l) => l.anchor >= "2026-11-01").map((l) => [l.employee.name, l.on, l.anchor])).toEqual([
+      ["Can Öztürk", "end", "2026-11-30"],
+      ["Ayşe Yılmaz", "start", "2026-12-01"],
+      ["Deniz Arslan", "start", "2026-12-01"],
+    ]);
+    expect(asHr.find((l) => l.on === "start" && l.employee.name === "Ayşe Yılmaz")!.identity).toMatchObject({ status: "waiting" });
+    expect(new Set(app.hr.openChecklists(AYSE).map((l) => l.employee.name))).toEqual(new Set(["Ayşe Yılmaz", "Deniz Arslan"]));
+    expect(app.hr.openChecklists(DENIZ).map((l) => l.employee.name)).toEqual(["Deniz Arslan"]);
+  });
 });
 
 describe("Identity", () => {
@@ -323,6 +403,14 @@ describe("CSV import", () => {
     expect(app.hr.listEmployees(SELIN, new URLSearchParams({ q: "zeynep" }))).toEqual([]);
     const r = app.hr.importCsv(SELIN, { csv });
     expect(r.errors).toEqual([{ row: 5, message: "startDate: 31.02.2024 is not a day such as 2026-12-01 or 01.12.2026." }]);
+    expect(dry.results.map((x) => [x.row, x.name, x.result, x.employee])).toEqual([
+      [2, "Zeynep Kara", "created", null],
+      [3, "Burak Aksoy", "created", null],
+      [4, "Can Öztürk", "updated", null],
+      [5, "Bad Date", "skipped", null],
+    ]);
+    expect(r.results.find((x) => x.row === 4)).toMatchObject({ workEmail: "can@example.com", result: "updated", employee: p.can.id });
+    expect(r.results.find((x) => x.row === 5)!.message).toMatch(/not a day/);
     const zeynep = app.hr.listEmployees(SELIN, new URLSearchParams({ q: "zeynep" }))[0]!;
     expect(zeynep).toMatchObject({
       department: { name: "Sales" },

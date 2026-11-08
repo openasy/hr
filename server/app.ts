@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { extname, join, normalize } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import { AuthError, mergeOpenApi, sendProblem, type Auth, type Role } from "@openasy/auth";
+import { AuthError, identityOrigin, mergeOpenApi, sendProblem, type Auth, type Role } from "@openasy/auth";
 import type { Hr } from "./hr.ts";
 import { log } from "./log.ts";
 import { countRequest, renderMetrics } from "./metrics.ts";
@@ -18,6 +18,8 @@ export interface AppOptions {
   auth: Auth;
   /** For tests and local scripts: one shared token with the admin role. main.ts never sets it. */
   adminToken?: string;
+  /** Built web UI; omit to run headless (ADR 0018). */
+  webDir?: string;
   /** Built API reference (Swagger UI), served at /api/docs. */
   docsDir?: string;
   /** The OpenAPI description, served at /api/openapi.json with this release's version. */
@@ -47,15 +49,20 @@ const TYPES: Record<string, string> = {
   ".css": "text/css",
   ".svg": "image/svg+xml",
   ".png": "image/png",
+  ".ico": "image/x-icon",
+  ".woff2": "font/woff2",
 };
 
-// Personal data: nothing is cached on the way, and the API reference runs nothing from elsewhere.
+// Identity keeps people's theme and language when they sign in through it; the pages read them there (ADR 0033).
+const IDENTITY = identityOrigin(process.env);
+
+// Personal data: nothing is cached on the way, and the pages and the API reference run nothing from elsewhere.
 const SECURITY_HEADERS = {
   "x-content-type-options": "nosniff",
   "referrer-policy": "no-referrer",
   "x-frame-options": "DENY",
   "cache-control": "no-store",
-  "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'",
+  "content-security-policy": `default-src 'self'; connect-src 'self'${IDENTITY ? ` ${IDENTITY}` : ""}; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; form-action 'self'; frame-ancestors 'none'`,
 };
 
 function send(res: ServerResponse, status: number, body: string | Buffer, type = "application/json", headers: Record<string, string> = {}) {
@@ -139,7 +146,7 @@ interface Route {
   handle: (ctx: Ctx) => unknown;
 }
 
-export function createApp({ db, hr, version, auth, adminToken, docsDir, openapi, serveMetrics = true, products = [] }: AppOptions) {
+export function createApp({ db, hr, version, auth, adminToken, webDir, docsDir, openapi, serveMetrics = true, products = [] }: AppOptions) {
   const spec = openapi && JSON.stringify({ ...mergeOpenApi(openapi), info: { ...(openapi.info as object), version } });
   const noContent = (res: ServerResponse) => void res.writeHead(204, SECURITY_HEADERS).end();
   const created = (res: ServerResponse, data: unknown) => json(res, 201, data);
@@ -182,6 +189,7 @@ export function createApp({ db, hr, version, auth, adminToken, docsDir, openapi,
     { method: "PATCH", path: `${P}/employees/:id`, auth: "user", handle: async ({ who, params, body }) => hr.updateEmployee(who, params[0]!, await body()) },
     { method: "DELETE", path: `${P}/employees/:id`, auth: "admin", handle: ({ res, who, params }) => (hr.removeEmployee(who, params[0]!), noContent(res)) },
     { method: "GET", path: `${P}/employees/:id/history`, auth: "user", handle: ({ who, params }) => ({ history: hr.history(who, params[0]!) }) },
+    { method: "GET", path: `${P}/employees/:id/national-id`, auth: "user", handle: ({ who, params }) => hr.nationalId(who, params[0]!) },
     { method: "GET", path: `${P}/employees/:id/access-log`, auth: "user", handle: ({ who, params }) => ({ entries: hr.accessLog(who, params[0]!) }) },
     { method: "GET", path: `${P}/employees/:id/pay`, auth: "user", handle: ({ who, params }) => ({ pay: hr.listPay(who, params[0]!) }) },
     {
@@ -212,7 +220,14 @@ export function createApp({ db, hr, version, auth, adminToken, docsDir, openapi,
       },
     },
     { method: "DELETE", path: `${P}/documents/:id`, auth: "editor", handle: ({ res, who, params }) => (hr.removeDocument(who, params[0]!), noContent(res)) },
-    { method: "GET", path: `${P}/expiring-documents`, auth: "user", handle: ({ who }) => ({ documents: hr.expiring(who) }) },
+    {
+      method: "GET",
+      path: `${P}/expiring-documents`,
+      auth: "user",
+      handle: ({ who, url }) => ({ documents: hr.expiring(who, url.searchParams.get("all") === "true") }),
+    },
+    { method: "GET", path: `${P}/checklists`, auth: "user", handle: ({ who }) => ({ checklists: hr.openChecklists(who) }) },
+    { method: "GET", path: `${P}/balances`, auth: "user", handle: ({ who, url }) => ({ balances: hr.balanceList(who, url.searchParams) }) },
 
     { method: "GET", path: `${P}/tasks`, auth: "user", handle: ({ who, url }) => ({ tasks: hr.tasks(who, url.searchParams.get("all") === "true") }) },
     { method: "POST", path: `${P}/tasks/:id/done`, auth: "user", handle: ({ who, params }) => hr.setTask(who, params[0]!, true) },
@@ -306,8 +321,15 @@ export function createApp({ db, hr, version, auth, adminToken, docsDir, openapi,
       return r.path;
     }
 
+    if (path.startsWith("/api/")) return (problem(res, 404, "not-found"), "/api/*");
+
+    if (webDir && (req.method === "GET" || req.method === "HEAD")) {
+      if (!(await serveFile(res, webDir, path === "/" ? "index.html" : path))) send(res, 200, await readFile(join(webDir, "index.html")), TYPES[".html"]);
+      return "/web";
+    }
+
     problem(res, 404, "not-found");
-    return path.startsWith("/api/") ? "/api/*" : "unmatched";
+    return "unmatched";
   }
 
   return async (req: IncomingMessage, res: ServerResponse) => {
