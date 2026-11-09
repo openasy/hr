@@ -1,6 +1,6 @@
 {
   "name": "@openasy/hr",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "OpenAsy HR: employee records, the org chart, documents with expiry, leave with Turkish labour law defaults, approvals, joining and leaving checklists, and Identity told when people join, move and leave.",
   "license": "AGPL-3.0-only",

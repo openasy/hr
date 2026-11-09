@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "OpenAsy HR",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Employee records, departments and positions, the org chart, documents with expiry, leave with balances and approvals as hr.yaml sets them, joining and leaving checklists, the history of every change and the access log. Everyone signed in reads the directory; the other parts of a record go to the person, their managers and the roles the file names; admins read everything.",
     "license": {
       "name": "AGPL-3.0-only",
