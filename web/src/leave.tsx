@@ -348,7 +348,7 @@ function AwayTable({ call }: { call: Call }) {
     <Panel title={t("leave.whoIsAway")} description={t("leave.awayDetail")} flush>
       {rows.size ? (
         <div className="overflow-x-auto">
-          <table className="hr-away w-full text-left text-xs">
+          <table className="hr-away w-full text-start text-xs">
             <caption className="sr-only">{caption}</caption>
             <thead className="bg-canvas text-fg-muted">
               <tr>

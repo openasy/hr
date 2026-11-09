@@ -33,7 +33,7 @@ function PersonCard({ p, lead }: { p: OrgNode; lead?: boolean }) {
   return (
     <a
       href={`/people/${p.id}`}
-      className={`hr-card flex w-full items-center gap-2 rounded-md border bg-surface px-2.5 py-2 text-left ${lead ? "border-line-strong" : "border-line"}`}
+      className={`hr-card flex w-full items-center gap-2 rounded-md border bg-surface px-2.5 py-2 text-start ${lead ? "border-line-strong" : "border-line"}`}
     >
       <Avatar name={p.name} size="sm" />
       <span className="flex min-w-0 flex-col">
@@ -46,7 +46,7 @@ function PersonCard({ p, lead }: { p: OrgNode; lead?: boolean }) {
 
 function Branch({ nodes, matches, query }: { nodes: OrgNode[]; matches: (p: OrgNode) => boolean; query: string }) {
   return (
-    <ul className="hr-list hr-branch flex flex-col gap-1.5 border-l border-line">
+    <ul className="hr-list hr-branch flex flex-col gap-1.5 border-s border-line">
       {nodes.map((r) => (
         <li key={r.id} className={query && !matches(r) ? "hr-dim" : undefined}>
           <PersonCard p={r} />

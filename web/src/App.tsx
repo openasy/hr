@@ -41,7 +41,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Absence, Department, Employee, ExpiringDoc, LeaveRequest, Me, ProductLink, Settings, Task, Upcoming } from "./api.ts";
 import { day, num, today, useApi, useLoad, weekday, words, type Call } from "./common.tsx";
-import { useT } from "./i18n.ts";
+import { useT, setViewerLocale } from "./i18n.ts";
 import { LeavePage, leaveDates, type LeaveTab } from "./leave.tsx";
 import { DocumentsPage, IntegrationsPage, JoiningPage, MyRecordPage, OrgChartPage, SettingsFilePage } from "./pages.tsx";
 import { PeoplePage, RecordPage, type RecordPart } from "./people.tsx";
@@ -88,6 +88,7 @@ const KIND_TONE: Record<Upcoming["kind"], Tone> = {
 function HomePage({ call, me }: Ctx) {
   const t = useT();
   const [locale] = useLocalePreference();
+  setViewerLocale(locale);
   const now = today();
   const [people] = useLoad<{ employees: Employee[] }>(call, "/api/v1/employees");
   const [upcoming] = useLoad<{ events: Upcoming[] }>(call, "/api/v1/upcoming?days=60");
